@@ -46,6 +46,7 @@ struct SmartContractProposal {
 struct AcceptedSmartContractProposal {
     string arweaveTxId;
     address creator;
+    bool removed;
 }
 
 struct RemovalProposal {
@@ -305,7 +306,8 @@ library CatalogDaoLib {
                     arweaveTxId: self
                         .smartContractProposals[sCIndex]
                         .arweaveTxId,
-                    creator: msg.sender
+                    creator: msg.sender,
+                    removed: false
                 });
 
                 self.myProposals[msg.sender].acceptedSCProposals.push(
@@ -390,9 +392,97 @@ library CatalogDaoLib {
             );
     }
 
-    //     function votedAlreadyOnRemoval
+    function votedAlreadyOnRemoval(
+        CatalogState storage self,
+        uint256 removalIndex,
+        address _voter
+    ) external view returns (bool) {
+        bytes32 remHash = removalProposalHash(
+            self.removalProposals[removalIndex],
+            _voter
+        );
+        return self.voted[remHash];
+    }
 
-    // TODO: You cant vote on your own contract if it was marked malicious
+    function voteOnRemoval(
+        CatalogState storage self,
+        uint256 removalIndex,
+        bool accepted
+    ) external returns (bool) {
+        // A minimum of 1 rank is required for voting
+        require(self.rank[msg.sender] > 0, "You need 1 rank to vote.");
 
+        // You can't vote on your own removal
+        require(
+            self
+                .acceptedSCProposals[
+                    self.removalProposals[removalIndex].acceptedIndex
+                ]
+                .creator != msg.sender,
+            "You cant vote."
+        );
 
+        bytes32 remHash = removalProposalHash(
+            self.removalProposals[removalIndex],
+            msg.sender
+        );
+
+        require(!self.voted[remHash], "You voted already.");
+
+        //Checking if the voting period is over
+        require(
+            self.removalProposals[removalIndex].createdBlock + POLLPERIOD >
+                block.number,
+            "Voting period is over"
+        );
+
+        if (accepted) {
+            self.removalProposals[removalIndex].approvals += self.rank[
+                msg.sender
+            ];
+        } else {
+            self.removalProposals[removalIndex].rejections += self.rank[
+                msg.sender
+            ];
+        }
+
+        self.voted[remHash] = true;
+
+        return true;
+    }
+
+    function closeRemovalProposal(
+        CatalogState storage self,
+        uint256 removalIndex
+    ) external returns (bool) {
+        // Everybody closes their own proposals
+        RemovalProposal memory prop = self.removalProposals[removalIndex];
+        require(prop.creator == msg.sender, "Wrong proposal.");
+
+        require(
+            prop.createdBlock + POLLPERIOD < block.number,
+            "The voting is not over,yet"
+        );
+
+        self.removalProposals[removalIndex].closed = true;
+
+        if (prop.approvals >= 10) {
+            if (prop.approvals > prop.rejections) {
+                // If the proposal was accepted, I remove the approved proposal
+                // If the contract was marked malicious, I remove the rank of it's creator
+                self.acceptedSCProposals[prop.acceptedIndex].removed = true;
+
+                // If it was marked malicious, I reduce the rank of the offender
+                if (self.removalProposals[removalIndex].malicious) {
+                    self.rank[
+                        self.acceptedSCProposals[prop.acceptedIndex].creator
+                    ] = 0;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    //<-- Removal proposal functions end -->
 }

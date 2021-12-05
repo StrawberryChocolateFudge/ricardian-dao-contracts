@@ -113,4 +113,54 @@ contract CatalogDao {
     }
 
     //<-- Smart contract proposal functions end -->
+
+    //<-- Removal proposals start -->
+    function proposeContractRemoval(
+        string calldata _discussionUrl,
+        uint256 _acceptedSCIndex,
+        bool malicious
+    ) external returns (uint256) {
+        return
+            state.proposeContractRemoval(
+                _discussionUrl,
+                _acceptedSCIndex,
+                malicious
+            );
+    }
+
+    function votedAlreadyOnRemoval(uint256 removalIndex, address _voter)
+        external
+        view
+        returns (bool)
+    {
+        return state.votedAlreadyOnRemoval(removalIndex, _voter);
+    }
+
+    function voteOnRemoval(uint256 removalIndex, bool accepted)
+        external
+        returns (bool)
+    {
+        return state.voteOnRemoval(removalIndex, accepted);
+    }
+
+    function closeRemovalProposal(uint256 removalIndex)
+        external
+        returns (bool)
+    {
+        return state.closeRemovalProposal(removalIndex);
+    }
+
+    function getRemovalProposalIndex() external view returns (uint256) {
+        return state.removalProposalIndex;
+    }
+
+    function getRemovalProposalByIndex(uint256 index)
+        external
+        view
+        returns (RemovalProposal memory)
+    {
+        return state.removalProposals[index];
+    }
+
+    //<-- removal proposals end -->
 }
