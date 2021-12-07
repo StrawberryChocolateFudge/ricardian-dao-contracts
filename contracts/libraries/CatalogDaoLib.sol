@@ -1,9 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-uint256 constant POLLPERIOD = 302400; //Estimate of  how many Harmony blocks are in a week.
-
 struct CatalogState {
+    uint256 pollPeriod;
     mapping(address => uint256) rank;
     mapping(uint256 => AcceptedSmartContractProposal) acceptedSCProposals;
     uint256 acceptedSCProposalIndex;
@@ -67,7 +66,7 @@ library CatalogDaoLib {
         CatalogState storage self,
         string calldata _repository
     ) external returns (uint256) {
-        require(self.rank[msg.sender] == 0, "You need 0 rank to propose it.");
+        require(self.rank[msg.sender] == 0, "900");
 
         self.rankProposalIndex += 1;
         self.rankProposals[self.rankProposalIndex] = RankProposal({
@@ -122,20 +121,20 @@ library CatalogDaoLib {
         bool accepted
     ) external returns (bool) {
         // A minimum of 1 rank is required for voting
-        require(self.rank[msg.sender] > 0, "You need 1 rank to vote.");
+        require(self.rank[msg.sender] > 0, "901");
 
         bytes32 rankHash = rankProposalHash(
             self.rankProposals[rankIndex],
             msg.sender
         );
         // Checking if the sender already voted
-        require(!self.voted[rankHash], "You voted already!");
+        require(!self.voted[rankHash], "902");
 
         // Checking if the voting period is over
         require(
-            self.rankProposals[rankIndex].createdBlock + POLLPERIOD >
+            self.rankProposals[rankIndex].createdBlock + self.pollPeriod >
                 block.number,
-            "The voting period is over."
+            "903"
         );
 
         if (accepted) {
@@ -155,15 +154,12 @@ library CatalogDaoLib {
     {
         // Everybody needs to close their own proposals
 
+        require(self.rankProposals[rankIndex].creator == msg.sender, "904");
+        require(!self.rankProposals[rankIndex].closed, "907");
         require(
-            self.rankProposals[rankIndex].creator == msg.sender,
-            "Wrong proposal."
-        );
-
-        require(
-            self.rankProposals[rankIndex].createdBlock + POLLPERIOD <
+            self.rankProposals[rankIndex].createdBlock + self.pollPeriod <
                 block.number,
-            "The voting is not over, yet"
+            "905"
         );
 
         self.rankProposals[rankIndex].closed = true;
@@ -192,7 +188,7 @@ library CatalogDaoLib {
         string calldata _arweaveTxId
     ) external returns (uint256) {
         // The sender must have high enough rank
-        require(self.rank[msg.sender] > 0, "Rank must be at least 1");
+        require(self.rank[msg.sender] > 0, "901");
         self.smartContractProposalIndex += 1;
 
         self.smartContractProposals[
@@ -250,18 +246,19 @@ library CatalogDaoLib {
         bool accepted
     ) external returns (bool) {
         // A minimum of 1 rank is required for voting
-        require(self.rank[msg.sender] > 0, "You need 1 rank to vote.");
+        require(self.rank[msg.sender] > 0, "901");
         bytes32 scHash = smartContractProposalHash(
             self.smartContractProposals[sCIndex],
             msg.sender
         );
 
-        require(!self.voted[scHash], "You voted already");
+        require(!self.voted[scHash], "902");
         // Checking if the voting period is over
         require(
-            self.smartContractProposals[sCIndex].createdBlock + POLLPERIOD >
+            self.smartContractProposals[sCIndex].createdBlock +
+                self.pollPeriod >
                 block.number,
-            "The voting period is over."
+            "903"
         );
         if (accepted) {
             self.smartContractProposals[sCIndex].approvals += self.rank[
@@ -284,17 +281,24 @@ library CatalogDaoLib {
 
         require(
             self.smartContractProposals[sCIndex].creator == msg.sender,
-            "Wrong proposal."
+            "904"
         );
 
         require(
-            self.smartContractProposals[sCIndex].createdBlock + POLLPERIOD <
+            self.smartContractProposals[sCIndex].createdBlock +
+                self.pollPeriod <
                 block.number,
-            "The voting period is not over."
+            "905"
         );
+        require(!self.smartContractProposals[sCIndex].closed, "907");
+
         self.smartContractProposals[sCIndex].closed = true;
 
-        if (self.smartContractProposals[sCIndex].approvals >= 10) {
+        // if the amount of approvals is more than 10 and the sender didnt get his rank reduced in the meanwhile
+        if (
+            self.smartContractProposals[sCIndex].approvals >= 10 &&
+            self.rank[msg.sender] > 0
+        ) {
             if (
                 self.smartContractProposals[sCIndex].approvals >
                 self.smartContractProposals[sCIndex].rejections
@@ -313,11 +317,18 @@ library CatalogDaoLib {
                 self.myProposals[msg.sender].acceptedSCProposals.push(
                     self.acceptedSCProposalIndex
                 );
-
                 // If the proposal was accepted, I increase the Rank of the creator
                 // If the rank of the sender was
-                if (self.rank[msg.sender] == 1) {
-                    self.rank[msg.sender] = 2;
+                if (
+                    self.rank[msg.sender] == 1 &&
+                    self.myProposals[msg.sender].removedFromMe.length == 0
+                ) {
+                    if (
+                        self
+                            .myProposals[msg.sender]
+                            .acceptedSCProposals
+                            .length >= 3
+                    ) self.rank[msg.sender] = 2;
                 }
 
                 // If the rank of the sender is 2, I need 3 accepted proposals to increase it to 3
@@ -330,7 +341,7 @@ library CatalogDaoLib {
                         self
                             .myProposals[msg.sender]
                             .acceptedSCProposals
-                            .length >= 3
+                            .length >= 6
                     ) {
                         self.rank[msg.sender] = 3;
                     }
@@ -352,7 +363,7 @@ library CatalogDaoLib {
         uint256 _acceptedSCIndex,
         bool _malicious
     ) external returns (uint256) {
-        require(self.rank[msg.sender] > 0, "You need at least 1 rank");
+        require(self.rank[msg.sender] > 0, "901");
         self.removalProposalIndex += 1;
         self.removalProposals[self.removalProposalIndex] = RemovalProposal({
             discussionUrl: _discussionUrl,
@@ -410,7 +421,7 @@ library CatalogDaoLib {
         bool accepted
     ) external returns (bool) {
         // A minimum of 1 rank is required for voting
-        require(self.rank[msg.sender] > 0, "You need 1 rank to vote.");
+        require(self.rank[msg.sender] > 0, "901");
 
         // You can't vote on your own removal
         require(
@@ -419,7 +430,7 @@ library CatalogDaoLib {
                     self.removalProposals[removalIndex].acceptedIndex
                 ]
                 .creator != msg.sender,
-            "You cant vote."
+            "906"
         );
 
         bytes32 remHash = removalProposalHash(
@@ -427,13 +438,13 @@ library CatalogDaoLib {
             msg.sender
         );
 
-        require(!self.voted[remHash], "You voted already.");
+        require(!self.voted[remHash], "902");
 
         //Checking if the voting period is over
         require(
-            self.removalProposals[removalIndex].createdBlock + POLLPERIOD >
+            self.removalProposals[removalIndex].createdBlock + self.pollPeriod >
                 block.number,
-            "Voting period is over"
+            "903"
         );
 
         if (accepted) {
@@ -457,12 +468,10 @@ library CatalogDaoLib {
     ) external returns (bool) {
         // Everybody closes their own proposals
         RemovalProposal memory prop = self.removalProposals[removalIndex];
-        require(prop.creator == msg.sender, "Wrong proposal.");
+        require(prop.creator == msg.sender, "904");
 
-        require(
-            prop.createdBlock + POLLPERIOD < block.number,
-            "The voting is not over,yet"
-        );
+        require(prop.createdBlock + self.pollPeriod < block.number, "905");
+        require(!self.removalProposals[removalIndex].closed, "907");
 
         self.removalProposals[removalIndex].closed = true;
 
