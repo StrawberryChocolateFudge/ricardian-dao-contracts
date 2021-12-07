@@ -5,14 +5,18 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-//WIP STAKIN, TRANSFER FEES, REWARD BALANCE..ETC
+//WIP STAKIN, TRANSFER FEES, REWARD BALANCE, ARWEAVE PST..ETC
 
 contract RicToken is IERC20, IERC20Metadata, Context {
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    uint256 private _totalSupply;
+    uint256 private _totalSupply = 50000000;
+    uint256 private _rewardSupply = 30000000;
+
+
+
 
     string private _name;
     string private _symbol;
