@@ -43,7 +43,7 @@ contract CatalogDao {
         return state.proposeNewRank(_repository);
     }
 
-    function getRank(address _address) public view returns (uint256) {
+    function getRank(address _address) public view returns (uint8) {
         return state.rank[_address];
     }
 

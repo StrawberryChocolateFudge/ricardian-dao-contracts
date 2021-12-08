@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 struct CatalogState {
     uint256 pollPeriod;
-    mapping(address => uint256) rank;
+    mapping(address => uint8) rank;
     mapping(uint256 => AcceptedSmartContractProposal) acceptedSCProposals;
     uint256 acceptedSCProposalIndex;
     mapping(uint256 => RankProposal) rankProposals;
