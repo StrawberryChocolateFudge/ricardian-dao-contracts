@@ -5,7 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-//WIP STAKIN, TRANSFER FEES, REWARD BALANCE, ARWEAVE PST..ETC
+// THIS IS A SIMPLE ERC20 for now, WORK IN PROGRESS.
+// WIP: STAKING, TRANSFER FEES, REWARD BALANCE, ARWEAVE PST..ETC
 
 contract RicToken is IERC20, IERC20Metadata, Context {
     mapping(address => uint256) private _balances;
@@ -14,9 +15,6 @@ contract RicToken is IERC20, IERC20Metadata, Context {
 
     uint256 private _totalSupply = 50000000;
     uint256 private _rewardSupply = 30000000;
-
-
-
 
     string private _name;
     string private _symbol;
@@ -375,15 +373,6 @@ contract RicToken is IERC20, IERC20Metadata, Context {
         address to,
         uint256 amount
     ) internal virtual {}
-
-    //TODO: ERC20
-    //TODO: TOTALSUPPLY
-    //TODO: TOTALREWARD
-    //TODO: block based reward distribution
-
-    //TODO: LIBRARY BASED
-    //TODO: Staking built
-    //TODO: Arweave PST
 
     uint256 public constant REBASEINTERVAL = 12600;
 }
