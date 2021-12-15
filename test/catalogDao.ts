@@ -23,7 +23,16 @@ describe("CatalogDao", function () {
   it("Participant 1 requests rank and the owner will pass it, ", async function () {
     const { catalogDAO, owner, participant1, participant2 } = await setUp();
     expect(await catalogDAO.getRankProposalIndex()).to.equal(0);
+
     await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+
+    const addingRepoTwiceThrows = await expectRevert(
+      () => catalogDAO.connect(participant1).proposeNewRank("repoURL"),
+      "908"
+    );
+    expect(addingRepoTwiceThrows.throws).equal(true);
+    expect(addingRepoTwiceThrows.correct).equals(true);
+
     expect(await catalogDAO.getRankProposalIndex()).to.equal(1);
     expect(
       await (
