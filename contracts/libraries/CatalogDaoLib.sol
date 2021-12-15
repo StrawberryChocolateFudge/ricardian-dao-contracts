@@ -16,6 +16,8 @@ struct CatalogState {
     uint256 removalProposalIndex;
 }
 
+//TODO: All Accepted, removal and removedFromMe txIds could be also stored in a struct for easy access
+
 struct MyProposals {
     uint256[] rank;
     uint256[] smartContract;
@@ -67,7 +69,12 @@ library CatalogDaoLib {
         string calldata _repository
     ) external returns (uint256) {
         require(self.rank[msg.sender] == 0, "900");
-
+        if (self.myProposals[msg.sender].rank.length > 0) {
+            uint256 index = self.myProposals[msg.sender].rank[
+                self.myProposals[msg.sender].rank.length - 1
+            ];
+            require(self.rankProposals[index].closed, "908");
+        }
         self.rankProposalIndex += 1;
         self.rankProposals[self.rankProposalIndex] = RankProposal({
             repository: _repository,
