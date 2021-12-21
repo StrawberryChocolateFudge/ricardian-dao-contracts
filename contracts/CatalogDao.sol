@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "./libraries/CatalogDaoLib.sol";
+import "@ricardianfabric/simpleterms/contracts/SimpleTerms.sol";
 
-contract CatalogDao {
+contract CatalogDao is SimpleTerms {
     using CatalogDaoLib for CatalogState;
     CatalogState private state;
 
@@ -36,7 +37,7 @@ contract CatalogDao {
 
     // <-- Rank functions start -->
     function proposeNewRank(string calldata _repository)
-        external
+        external checkAcceptance
         returns (uint256)
     {
         emit NewRankProposal(msg.sender, _repository);
@@ -68,7 +69,7 @@ contract CatalogDao {
     }
 
     function voteOnNewRank(uint256 rankIndex, bool accepted)
-        external
+        external checkAcceptance
         returns (bool)
     {
         emit RankVote(msg.sender, rankIndex, accepted);
@@ -87,10 +88,114 @@ contract CatalogDao {
         return state.myProposals[msg.sender];
     }
 
+    function getMyRankProposalsPaginated(
+        uint256 first,
+        uint256 second,
+        uint256 third,
+        uint256 fourth,
+        uint256 fifth
+    )
+        external
+        view
+        returns (
+            RankProposal memory,
+            RankProposal memory,
+            RankProposal memory,
+            RankProposal memory,
+            RankProposal memory
+        )
+    {
+        return (
+            state.rankProposals[first],
+            state.rankProposals[second],
+            state.rankProposals[third],
+            state.rankProposals[fourth],
+            state.rankProposals[fifth]
+        );
+    }
+
+    function getMySmartContractProposalsPaginated(
+        uint256 first,
+        uint256 second,
+        uint256 third,
+        uint256 fourth,
+        uint256 fifth
+    )
+        external
+        view
+        returns (
+            SmartContractProposal memory,
+            SmartContractProposal memory,
+            SmartContractProposal memory,
+            SmartContractProposal memory,
+            SmartContractProposal memory
+        )
+    {
+        return (
+            state.smartContractProposals[first],
+            state.smartContractProposals[second],
+            state.smartContractProposals[third],
+            state.smartContractProposals[fourth],
+            state.smartContractProposals[fifth]
+        );
+    }
+
+    function getAcceptedSmartContractProposalsPaginated(
+        uint256 first,
+        uint256 second,
+        uint256 third,
+        uint256 fourth,
+        uint256 fifth
+    )
+        external
+        view
+        returns (
+            AcceptedSmartContractProposal memory,
+            AcceptedSmartContractProposal memory,
+            AcceptedSmartContractProposal memory,
+            AcceptedSmartContractProposal memory,
+            AcceptedSmartContractProposal memory
+        )
+    {
+        return (
+            state.acceptedSCProposals[first],
+            state.acceptedSCProposals[second],
+            state.acceptedSCProposals[third],
+            state.acceptedSCProposals[fourth],
+            state.acceptedSCProposals[fifth]
+        );
+    }
+
+    function getRemovalProposalsPaginated(
+        uint256 first,
+        uint256 second,
+        uint256 third,
+        uint256 fourth,
+        uint256 fifth
+    )
+        external
+        view
+        returns (
+            RemovalProposal memory,
+            RemovalProposal memory,
+            RemovalProposal memory,
+            RemovalProposal memory,
+            RemovalProposal memory
+        )
+    {
+        return (
+            state.removalProposals[first],
+            state.removalProposals[second],
+            state.removalProposals[third],
+            state.removalProposals[fourth],
+            state.removalProposals[fifth]
+        );
+    }
+
     //<-- Smart contract proposal functions start -->
 
     function proposeNewSmartContract(string calldata _arweaveTxId)
-        external
+        external checkAcceptance
         returns (uint256)
     {
         emit NewSmartContractProposal(msg.sender, _arweaveTxId);
@@ -118,7 +223,7 @@ contract CatalogDao {
     }
 
     function voteOnNewSmartContract(uint256 sCIndex, bool accepted)
-        external
+        external checkAcceptance
         returns (bool)
     {
         emit VoteOnNewSmartContract(msg.sender, sCIndex, accepted);
@@ -152,7 +257,7 @@ contract CatalogDao {
         string calldata _discussionUrl,
         uint256 _acceptedSCIndex,
         bool malicious
-    ) external returns (uint256) {
+    ) external checkAcceptance returns (uint256) {
         emit NewRemovalProposal(
             msg.sender,
             _discussionUrl,
@@ -176,7 +281,7 @@ contract CatalogDao {
     }
 
     function voteOnRemoval(uint256 removalIndex, bool accepted)
-        external
+        external checkAcceptance
         returns (bool)
     {
         emit VoteOnRemoval(msg.sender, removalIndex, accepted);
