@@ -28,7 +28,7 @@ describe("CatalogDao", function () {
 
     const addingRepoTwiceThrows = await expectRevert(
       () => catalogDAO.connect(participant1).proposeNewRank("repoURL"),
-      "908"
+      "918"
     );
     expect(addingRepoTwiceThrows.throws).equal(true);
     expect(addingRepoTwiceThrows.correct).equals(true);
@@ -42,7 +42,7 @@ describe("CatalogDao", function () {
 
     const participant2Throws = await expectRevert(
       () => catalogDAO.connect(participant2).voteOnNewRank(1, true),
-      "901"
+      "911"
     );
     expect(participant2Throws.throws).equal(true);
     expect(participant2Throws.correct).equals(true);
@@ -110,7 +110,7 @@ describe("CatalogDao", function () {
           catalogDAO
             .connect(participant1)
             .closeSmartContractProposal(proposedContractindex as BigNumber),
-        "907"
+        "917"
       );
       expect(proposalAlreadyClosed.throws).equal(true);
       expect(proposalAlreadyClosed.correct).equals(true);
