@@ -266,20 +266,20 @@ Emitted when a removal proposal is closed.
 
 ## Error codes:
 
-900 : You need 0 rank to get new rank.
+910 : You need 0 rank to get new rank.
 
-901: You need 1 rank to vote.
+911: You need 1 rank to vote.
 
-902: You voted already.
+912: You voted already.
 
-903: The voting period is over.
+913: The voting period is over.
 
-904: Wrong proposal.
+914: Wrong proposal.
 
-905: The voting is not over.
+915: The voting is not over.
 
-906: You can't vote on your own removal.
+916: You can't vote on your own removal.
 
-907: The proposal is already closed.
+917: The proposal is already closed.
 
-908: You need to wait for your pending rank proposal before you can add a new one.
+918: You need to wait for your pending rank proposal before you can add a new one.
