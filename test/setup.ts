@@ -15,6 +15,13 @@ export async function setUp() {
   const catalogDAO = await CatalogDAO.deploy(100);
   await catalogDAO.deployed();
 
+  catalogDAO.setTerms("url", "value");
+  catalogDAO.connect(owner).accept("value");
+  catalogDAO.connect(participant1).accept("value");
+  catalogDAO.connect(participant2).accept("value");
+  catalogDAO.connect(participant3).accept("value");
+  catalogDAO.connect(participant4).accept("value");
+
   return {
     catalogDAO,
     owner,
