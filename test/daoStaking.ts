@@ -68,18 +68,14 @@ describe("daoStaking", async function () {
     await expectRevert(() => daoStaking.connect(participant1).unStake(), "924");
 
     await mineBlocks(100).then(async () => {
+      let PS = new Array(await arweaveps.getAllPS());
+      expect(PS[0][0].sharing).to.equal(true);
       expect(await daoStaking.connect(participant1).unStake()).to.emit(
         daoStaking,
         "Unstake"
       );
-      // TODO:check if the arweaveps unstake triggeres the stopPS
-      // I expect the arweaveps staking was stopped
-      // expect(await arweaveps.connect(participant1).getAllPS()[1]).to.equal(
-      //   false
-      // );
-      const PS = new Array(await arweaveps.getAllPS());
-      console.log(PS);
-      console.log(PS[0][0].sharing);
+      PS = new Array(await arweaveps.getAllPS());
+      expect(PS[0][0].sharing).to.equal(false);
 
       expect(await daoStaking.isStaking(participant1.address)).to.equal(false);
 
