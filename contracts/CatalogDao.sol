@@ -1,12 +1,15 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./libraries/CatalogDaoLib.sol";
 import "@ricardianfabric/simpleterms/contracts/SimpleTerms.sol";
+import "./DaoStaking.sol";
 
 contract CatalogDao is SimpleTerms {
     using CatalogDaoLib for CatalogState;
     CatalogState private state;
+
+    DaoStaking private daoStaking;
 
     event NewRankProposal(address indexed from, string repository);
     event RankVote(address indexed from, uint256 rankIndex, bool accepted);
@@ -27,19 +30,22 @@ contract CatalogDao is SimpleTerms {
     event VoteOnRemoval(address indexed from, uint256 index, bool accepted);
     event CloseRemovalProposal(address indexed from, uint256 index);
 
-    constructor(uint256 pollPeriod) {
+    constructor(uint256 pollPeriod, DaoStaking _daoStaking) {
         // The creator of the contract gets elevated privilage and 10 rank points.
         // For other users, max rank is 3, but 10 is needed to pass the voting.
         state.rank[msg.sender] = 10;
-
         state.pollPeriod = pollPeriod; //302400, Estimate of  how many Harmony blocks are in a week.
+
+        daoStaking = _daoStaking;
     }
 
     // <-- Rank functions start -->
     function proposeNewRank(string calldata _repository)
-        external checkAcceptance
+        external
+        checkAcceptance
         returns (uint256)
     {
+        daoStaking.extendStakeTime(msg.sender);
         emit NewRankProposal(msg.sender, _repository);
         return state.proposeNewRank(_repository);
     }
@@ -69,9 +75,11 @@ contract CatalogDao is SimpleTerms {
     }
 
     function voteOnNewRank(uint256 rankIndex, bool accepted)
-        external checkAcceptance
+        external
+        checkAcceptance
         returns (bool)
     {
+        daoStaking.extendStakeTime(msg.sender);
         emit RankVote(msg.sender, rankIndex, accepted);
         return state.voteOnNewRank(rankIndex, accepted);
     }
@@ -195,9 +203,11 @@ contract CatalogDao is SimpleTerms {
     //<-- Smart contract proposal functions start -->
 
     function proposeNewSmartContract(string calldata _arweaveTxId)
-        external checkAcceptance
+        external
+        checkAcceptance
         returns (uint256)
     {
+        daoStaking.extendStakeTime(msg.sender);
         emit NewSmartContractProposal(msg.sender, _arweaveTxId);
         return state.proposeNewSmartContract(_arweaveTxId);
     }
@@ -222,12 +232,14 @@ contract CatalogDao is SimpleTerms {
         return state.votedAlreadyOnSC(sCIndex, _voter);
     }
 
-    function voteOnNewSmartContract(uint256 sCIndex, bool accepted)
-        external checkAcceptance
-        returns (bool)
-    {
+    function voteOnNewSmartContract(
+        uint256 sCIndex,
+        bool accepted,
+        bool suspicious
+    ) external checkAcceptance returns (bool) {
+        daoStaking.extendStakeTime(msg.sender);
         emit VoteOnNewSmartContract(msg.sender, sCIndex, accepted);
-        return state.voteOnNewSC(sCIndex, accepted);
+        return state.voteOnNewSC(sCIndex, accepted, suspicious);
     }
 
     function closeSmartContractProposal(uint256 sCIndex)
@@ -236,6 +248,13 @@ contract CatalogDao is SimpleTerms {
     {
         emit CloseSmartContractProposal(msg.sender, sCIndex);
         return state.closeSmartContractProposal(sCIndex);
+    }
+
+    //TODO: Tests
+    function closeSuspiciousProposal(uint256 sCIndex, DaoStaking staking)
+        external
+    {
+        state.closeSuspiciousProposal(sCIndex, staking);
     }
 
     function getAcceptedSmartContractIndex() external view returns (uint256) {
@@ -258,6 +277,7 @@ contract CatalogDao is SimpleTerms {
         uint256 _acceptedSCIndex,
         bool malicious
     ) external checkAcceptance returns (uint256) {
+        daoStaking.extendStakeTime(msg.sender);
         emit NewRemovalProposal(
             msg.sender,
             _discussionUrl,
@@ -281,9 +301,11 @@ contract CatalogDao is SimpleTerms {
     }
 
     function voteOnRemoval(uint256 removalIndex, bool accepted)
-        external checkAcceptance
+        external
+        checkAcceptance
         returns (bool)
     {
+        daoStaking.extendStakeTime(msg.sender);
         emit VoteOnRemoval(msg.sender, removalIndex, accepted);
         return state.voteOnRemoval(removalIndex, accepted);
     }
@@ -293,7 +315,7 @@ contract CatalogDao is SimpleTerms {
         returns (bool)
     {
         emit CloseRemovalProposal(msg.sender, removalIndex);
-        return state.closeRemovalProposal(removalIndex);
+        return state.closeRemovalProposal(daoStaking, removalIndex);
     }
 
     function getRemovalProposalIndex() external view returns (uint256) {
