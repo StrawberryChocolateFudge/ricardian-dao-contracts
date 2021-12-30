@@ -283,3 +283,37 @@ Emitted when a removal proposal is closed.
 917: The proposal is already closed.
 
 918: You need to wait for your pending rank proposal before you can add a new one.
+
+919: Sender needs to stake
+
+920: Only the staking contract can call this
+
+921: Profit sharing was not on
+
+922: You can't stake twice
+
+923: Invalid balance
+
+924: Your stake is still locked
+
+925: Only the catalog dao can call this
+
+926: Target needs to stake
+
+927: Not enough reward
+
+929: Rank too low
+
+930: Wrong proposal
+
+931: Reward already claimed
+
+932: Not enough tokens
+
+933: You already voted
+
+934: Not enough balance
+
+935: Locked!
+
+936: Not Enough tokens to withdraw from
