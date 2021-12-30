@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { BigNumber } from "ethers";
+// eslint-disable-next-line node/no-missing-import
 import { setUp, expectRevert, mineBlocks } from "./setup";
 
 describe("CatalogDao", function () {
@@ -11,7 +12,7 @@ describe("CatalogDao", function () {
       participant2,
       participant3,
       participant4,
-    } = await setUp();
+    } = await setUp(true);
 
     expect(await catalogDAO.getRank(owner.address)).to.equal(10);
     expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
@@ -21,7 +22,8 @@ describe("CatalogDao", function () {
   });
 
   it("Participant 1 requests rank and the owner will pass it, ", async function () {
-    const { catalogDAO, owner, participant1, participant2 } = await setUp();
+    const { catalogDAO, owner, participant1, participant2 } = await setUp(true);
+
     expect(await catalogDAO.getRankProposalIndex()).to.equal(0);
 
     await catalogDAO.connect(participant1).proposeNewRank("repoURL");
@@ -63,7 +65,7 @@ describe("CatalogDao", function () {
   });
 
   it("Participant 1 proposes a new smart contract and it gets accepted ", async function () {
-    const { catalogDAO, owner, participant1 } = await setUp();
+    const { catalogDAO, owner, participant1 } = await setUp(true);
     await catalogDAO.connect(participant1).proposeNewRank("repoURL");
     await catalogDAO.connect(owner).voteOnNewRank(1, true);
     await mineBlocks(100).then(async () => {
@@ -90,7 +92,7 @@ describe("CatalogDao", function () {
 
     await catalogDAO
       .connect(owner)
-      .voteOnNewSmartContract(proposedContractindex as BigNumber, true);
+      .voteOnNewSmartContract(proposedContractindex as BigNumber, true, false);
 
     expect(
       await (
@@ -98,7 +100,7 @@ describe("CatalogDao", function () {
           proposedContractindex as BigNumber
         )
       ).approvals
-    ).equals(11);
+    ).equals(10);
 
     await mineBlocks(100).then(async () => {
       await catalogDAO
@@ -120,7 +122,7 @@ describe("CatalogDao", function () {
   });
 
   it("Participant proposes a smart contract that gets voted in then later removed", async function () {
-    const { catalogDAO, owner, participant1, participant2 } = await setUp();
+    const { catalogDAO, owner, participant1, participant2 } = await setUp(true);
     await catalogDAO.connect(participant1).proposeNewRank("repoURL");
     await catalogDAO.connect(participant2).proposeNewRank("repoURL2");
 
@@ -142,9 +144,11 @@ describe("CatalogDao", function () {
 
       expect(await MYsmartContractProposals.smartContract.length).equal(1);
 
-      await catalogDAO.connect(participant2).voteOnNewSmartContract(1, false);
+      await catalogDAO
+        .connect(participant2)
+        .voteOnNewSmartContract(1, false, false);
 
-      await catalogDAO.connect(owner).voteOnNewSmartContract(1, true);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
 
       await mineBlocks(100).then(async () => {
         await catalogDAO.connect(participant1).closeSmartContractProposal(1);
@@ -175,7 +179,7 @@ describe("CatalogDao", function () {
       participant2,
       participant3,
       participant4,
-    } = await setUp();
+    } = await setUp(true);
     await catalogDAO.connect(participant1).proposeNewRank("repoURL");
     await catalogDAO.connect(participant2).proposeNewRank("repoURL2");
     await catalogDAO.connect(participant3).proposeNewRank("repoURL3");
@@ -201,18 +205,24 @@ describe("CatalogDao", function () {
       await catalogDAO.connect(participant4).proposeNewSmartContract("sc7");
       await catalogDAO.connect(participant4).proposeNewSmartContract("sc8");
 
-      await catalogDAO.connect(owner).voteOnNewSmartContract(1, true);
-      await catalogDAO.connect(participant2).voteOnNewSmartContract(1, true);
-      await catalogDAO.connect(participant3).voteOnNewSmartContract(1, true);
-      await catalogDAO.connect(participant4).voteOnNewSmartContract(1, true);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
+      await catalogDAO
+        .connect(participant2)
+        .voteOnNewSmartContract(1, true, false);
+      await catalogDAO
+        .connect(participant3)
+        .voteOnNewSmartContract(1, true, false);
+      await catalogDAO
+        .connect(participant4)
+        .voteOnNewSmartContract(1, true, false);
 
-      await catalogDAO.connect(owner).voteOnNewSmartContract(2, true);
-      await catalogDAO.connect(owner).voteOnNewSmartContract(3, true);
-      await catalogDAO.connect(owner).voteOnNewSmartContract(4, true);
-      await catalogDAO.connect(owner).voteOnNewSmartContract(5, true);
-      await catalogDAO.connect(owner).voteOnNewSmartContract(6, true);
-      await catalogDAO.connect(owner).voteOnNewSmartContract(7, true);
-      await catalogDAO.connect(owner).voteOnNewSmartContract(8, true);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(2, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(3, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(4, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(5, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(6, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(7, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(8, true, false);
 
       expect(
         await catalogDAO
@@ -239,10 +249,10 @@ describe("CatalogDao", function () {
         await catalogDAO.connect(participant1).proposeNewSmartContract("sc10");
         await catalogDAO.connect(participant1).proposeNewSmartContract("sc11");
         await catalogDAO.connect(participant1).proposeNewSmartContract("sc12");
-        await catalogDAO.connect(owner).voteOnNewSmartContract(9, true);
-        await catalogDAO.connect(owner).voteOnNewSmartContract(10, true);
-        await catalogDAO.connect(owner).voteOnNewSmartContract(11, true);
-        await catalogDAO.connect(owner).voteOnNewSmartContract(12, true);
+        await catalogDAO.connect(owner).voteOnNewSmartContract(9, true, false);
+        await catalogDAO.connect(owner).voteOnNewSmartContract(10, true, false);
+        await catalogDAO.connect(owner).voteOnNewSmartContract(11, true, false);
+        await catalogDAO.connect(owner).voteOnNewSmartContract(12, true, false);
 
         // send a removal proposal for one
 
