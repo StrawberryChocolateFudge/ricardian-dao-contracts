@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "../DaoStaking.sol";
+
 struct CatalogState {
     uint256 pollPeriod;
     mapping(address => uint8) rank;
@@ -41,6 +43,8 @@ struct SmartContractProposal {
     uint256 createdBlock;
     uint256 approvals;
     uint256 rejections;
+    uint256 suspicious; // Is this suspicious, seems to be malicious?
+    bool penalized; //Malicious users loose their stake
     bool closed;
 }
 
@@ -204,9 +208,11 @@ library CatalogDaoLib {
             arweaveTxId: _arweaveTxId,
             creator: msg.sender,
             createdBlock: block.number,
-            approvals: self.rank[msg.sender],
+            approvals: 0,
             rejections: 0,
-            closed: false
+            suspicious: 0,
+            closed: false,
+            penalized: false
         });
 
         bytes32 sCHash = smartContractProposalHash(
@@ -250,7 +256,8 @@ library CatalogDaoLib {
     function voteOnNewSC(
         CatalogState storage self,
         uint256 sCIndex,
-        bool accepted
+        bool accepted,
+        bool suspicious // Is this a suspicious proposal?
     ) external returns (bool) {
         // A minimum of 1 rank is required for voting
         require(self.rank[msg.sender] > 0, "911");
@@ -271,12 +278,47 @@ library CatalogDaoLib {
             self.smartContractProposals[sCIndex].approvals += self.rank[
                 msg.sender
             ];
+        } else {
             self.smartContractProposals[sCIndex].rejections += self.rank[
                 msg.sender
             ];
+            if (suspicious) {
+                self.smartContractProposals[sCIndex].suspicious += self.rank[
+                    msg.sender
+                ];
+            }
         }
         self.voted[scHash] = true;
         return true;
+    }
+
+    function closeSuspiciousProposal(
+        CatalogState storage self,
+        uint256 sCIndex,
+        DaoStaking staking
+    ) external {
+        require(
+            self.smartContractProposals[sCIndex].rejections >
+                self.smartContractProposals[sCIndex].approvals,
+            "Not rejected"
+        );
+
+        require(self.smartContractProposals[sCIndex].closed, "Not closed");
+        // More than half of the rejections find it suspicious.
+
+        // If there are more than 9 suspicious points
+        require(
+            9 < self.smartContractProposals[sCIndex].suspicious,
+            "Not enough suspicion"
+        );
+        require(
+            !self.smartContractProposals[sCIndex].penalized,
+            "Already penalized"
+        );
+        self.smartContractProposals[sCIndex].penalized = true;
+        // The proposal can be penalized
+        staking.penalize(self.acceptedSCProposals[sCIndex].creator);
+        self.rank[self.acceptedSCProposals[sCIndex].creator] = 0;
     }
 
     function closeSmartContractProposal(
@@ -285,12 +327,10 @@ library CatalogDaoLib {
     ) external returns (bool) {
         // Everybody needs to close their own proposals
         // From now on the creator can only be msg.sender
-
         require(
             self.smartContractProposals[sCIndex].creator == msg.sender,
             "914"
         );
-
         require(
             self.smartContractProposals[sCIndex].createdBlock +
                 self.pollPeriod <
@@ -378,7 +418,7 @@ library CatalogDaoLib {
             malicious: _malicious,
             acceptedIndex: _acceptedSCIndex,
             createdBlock: block.number,
-            approvals: self.rank[msg.sender],
+            approvals: 0,
             rejections: 0,
             closed: false
         });
@@ -471,6 +511,7 @@ library CatalogDaoLib {
 
     function closeRemovalProposal(
         CatalogState storage self,
+        DaoStaking staking,
         uint256 removalIndex
     ) external returns (bool) {
         // Everybody closes their own proposals
@@ -490,6 +531,9 @@ library CatalogDaoLib {
 
                 // If it was marked malicious, I reduce the rank of the offender
                 if (self.removalProposals[removalIndex].malicious) {
+                    staking.penalize(
+                        self.acceptedSCProposals[prop.acceptedIndex].creator
+                    );
                     self.rank[
                         self.acceptedSCProposals[prop.acceptedIndex].creator
                     ] = 0;
