@@ -202,14 +202,15 @@ contract CatalogDao is SimpleTerms {
 
     //<-- Smart contract proposal functions start -->
 
-    function proposeNewSmartContract(string calldata _arweaveTxId)
-        external
-        checkAcceptance
-        returns (uint256)
-    {
+    function proposeNewSmartContract(
+        string calldata _arweaveTxId,
+        bool _hasFrontEnd,
+        bool _hasFees
+    ) external checkAcceptance returns (uint256) {
         daoStaking.extendStakeTime(msg.sender);
         emit NewSmartContractProposal(msg.sender, _arweaveTxId);
-        return state.proposeNewSmartContract(_arweaveTxId);
+        return
+            state.proposeNewSmartContract(_arweaveTxId, _hasFrontEnd, _hasFees);
     }
 
     function getSmartContractProposalIndex() external view returns (uint256) {
@@ -250,11 +251,8 @@ contract CatalogDao is SimpleTerms {
         return state.closeSmartContractProposal(sCIndex);
     }
 
-    //TODO: Tests
-    function closeSuspiciousProposal(uint256 sCIndex, DaoStaking staking)
-        external
-    {
-        state.closeSuspiciousProposal(sCIndex, staking);
+    function closeSuspiciousProposal(uint256 sCIndex) external {
+        state.closeSuspiciousProposal(sCIndex, daoStaking);
     }
 
     function getAcceptedSmartContractIndex() external view returns (uint256) {
@@ -331,4 +329,11 @@ contract CatalogDao is SimpleTerms {
     }
 
     //<-- removal proposals end -->
+
+    function expressOpinion(uint256 _index_, bool likedIt)
+        external
+        returns (AcceptedSmartContractProposal memory)
+    {
+        return state.expressOpinion(_index_, likedIt);
+    }
 }
