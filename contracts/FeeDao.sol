@@ -3,37 +3,56 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./DaoStaking.sol";
-// The treasury is where the fees accumulate from the contracts in the catalog.
+import "./RicVault.sol";
+
+// The FeeDao is where the fees accumulate from the contracts in the catalog.
 // Token holders can Vote on IERC20 addresses to use for fees.
 // Token holders can exchange their tokens for reward from up to 3 IERC20 balances.
 // The exchanged tokens are added to the DaoStaking developer reward pool.
 struct TokenProposal {
     address creator;
+    string name;
     IERC20 proposal;
     string discussionURL;
     uint256 approvals;
     uint256 rejections;
     uint256 created;
     bool closed;
-    bool removal;
-    uint256 arrayIndex;
 }
 
-uint256 constant requiredBalance = 1000;
-uint256 constant precision = 1000000000; //The precision of reward calculation, 9 decimals
+struct Token {
+    string name; // The name of the token
+    IERC20 token;
+    uint256 likes; // Amount of addresses liking this
+    uint256 dislikes; // Amount of addresses disliking this
+}
 
-contract TreasuryBoard {
+uint256 constant requiredBalance = 1000e18;
+uint256 constant precision = 1000000000; //The precision of reward calculation, 9 decimals
+uint256 constant singleWithdrawLockPeriod = 100000; //blocks
+uint256 constant trippleWithdrawLockPeriod = 1000000; // blocks
+
+contract FeeDao {
     using SafeERC20 for IERC20;
 
     DaoStaking private staking;
+    CatalogDao private catalogDao;
+    RicVault private ricVault;
     IERC20 private ric;
-    IERC20[] private tokens;
     uint256 private pollPeriod;
 
     TokenProposal[] private proposals;
     mapping(bytes32 => bool) private voted;
 
     mapping(address => TokenProposal[]) private myProposals;
+
+    Token[] private tokens;
+    // AddressAdded is used like a .contains array method for the tokens .
+    // will return true if the address has been added
+    mapping(address => bool) private addressAdded;
+
+    mapping(bytes32 => bool) private likers; // collection of addresses who already liked or disliked a Token
+
     address private owner;
 
     bool private lock;
@@ -41,8 +60,7 @@ contract TreasuryBoard {
     event ProposeNewToken(
         address indexed _address,
         IERC20 _token,
-        string _discussionURL,
-        bool _removal
+        string _discussionURL
     );
 
     event VoteOnToken(address indexed _address, bool _accepted, uint256 _index);
@@ -67,45 +85,47 @@ contract TreasuryBoard {
     constructor(
         IERC20 ric_,
         DaoStaking _staking_,
+        CatalogDao _catalogDao_,
         uint256 pollPeriod_
     ) {
         ric = ric_;
         staking = _staking_;
         pollPeriod = pollPeriod_;
         owner = msg.sender;
+        catalogDao = _catalogDao_;
     }
 
-    function getTokens() external view returns (IERC20[] memory) {
-        return tokens;
+    function setRicVault(RicVault _ricVault_) external {
+        require(msg.sender == owner, "937");
+        ricVault = _ricVault_;
     }
 
     function proposeNewToken(
         IERC20 _token,
         string memory _discussionURL,
-        bool _removal
+        string memory _name_
     ) external returns (uint256) {
         require(staking.isStaking(msg.sender), "919");
+        require(catalogDao.getRank(msg.sender) > 0, "911");
         // The proposer must have the required balance
         require(ric.balanceOf(msg.sender) > requiredBalance, "932");
 
         TokenProposal memory proposal = TokenProposal({
+            name: _name_,
             creator: msg.sender,
             proposal: _token,
             discussionURL: _discussionURL,
             approvals: 0,
             rejections: 0,
             created: block.number,
-            closed: false,
-            removal: _removal,
-            arrayIndex: proposals.length
+            closed: false
         });
 
         proposals.push(proposal);
-
         bytes32 _hash_ = hashTokenProposal(proposal, msg.sender);
         voted[_hash_] = true;
         myProposals[msg.sender].push(proposal);
-        emit ProposeNewToken(msg.sender, _token, _discussionURL, _removal);
+        emit ProposeNewToken(msg.sender, _token, _discussionURL);
         return proposals.length;
     }
 
@@ -126,6 +146,7 @@ contract TreasuryBoard {
             );
     }
 
+    // Accessing array by index here!
     function votedAlready(uint256 index, address _voter)
         public
         view
@@ -137,7 +158,7 @@ contract TreasuryBoard {
 
     function voteOnToken(uint256 index, bool accepted) external {
         require(staking.isStaking(msg.sender), "919");
-
+        require(catalogDao.getRank(msg.sender) > 0, "911");
         // The voter must have the required balance
         require(ric.balanceOf(msg.sender) > requiredBalance, "932");
 
@@ -165,23 +186,56 @@ contract TreasuryBoard {
     }
 
     function closeTokenProposal(uint256 index) external {
+        require(catalogDao.getRank(msg.sender) > 0, "911");
+
         // Everybody closes their own proposals
         require(proposals[index].creator == msg.sender, "914");
         // The poll period must be over
         require(proposals[index].created + pollPeriod < block.number, "915");
-        require(proposals[index].closed, "917");
+        require(!proposals[index].closed, "917");
 
         proposals[index].closed = true;
         // If there are more approvals than rejections
         if (proposals[index].approvals > proposals[index].rejections) {
-            if (proposals[index].removal) {
-                delete tokens[proposals[index].arrayIndex];
-            } else {
-                tokens.push(proposals[index].proposal);
-            }
+            tokens.push(
+                Token({
+                    name: proposals[index].name,
+                    token: proposals[index].proposal,
+                    likes: 0,
+                    dislikes: 0
+                })
+            );
+            addressAdded[address(proposals[index].proposal)] = true;
         }
         // else its closed, done.
         emit CloseProposal(msg.sender, index);
+    }
+
+    function expressOpinion(uint256 _tokenArrIndex_, bool likedIt) external {
+        // LIKE OR DISLIKE THE TOKEN
+        bytes32 _hash_ = tokenHashWithAddress(tokens[_tokenArrIndex_]);
+        require(likers[_hash_] == false, "938");
+        likers[_hash_] = true;
+        if (likedIt) {
+            tokens[_tokenArrIndex_].likes += 1;
+        } else {
+            tokens[_tokenArrIndex_].dislikes += 1;
+        }
+    }
+
+    function tokenHashWithAddress(Token memory _tokens_)
+        internal
+        view
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(_tokens_.name, _tokens_.token, msg.sender)
+            );
+    }
+
+    function getTokens() external view returns (Token[] memory) {
+        return tokens;
     }
 
     function getProposals() external view returns (TokenProposal[] memory) {
@@ -202,42 +256,46 @@ contract TreasuryBoard {
         payment = calculatedValue / precision;
     }
 
-    function withdraw(IERC20 from, uint256 amount) external {
-        require(ric.balanceOf(msg.sender) > amount, "934");
-        uint256 _reward = calculateWithdraw(from, amount);
-        require(_reward < from.balanceOf(address(this)), "927");
+    function withdrawOne(IERC20 from, uint256 amount) external {
         require(!lock, "935");
         lock = true;
-        // Return the same percentage of tokens to the sender
-        // and transfer the amount to the developer reward
-        // Deposit the RIC to the staking
-        staking.depositRewards(amount);
+        require(addressAdded[address(from)], "939");
+        require(ric.balanceOf(msg.sender) >= amount, "934");
+        uint256 _reward = calculateWithdraw(from, amount);
+        require(_reward < from.balanceOf(address(this)), "927");
 
-        // and transfer him the requirested tokens
+        // Lock the ric in the vault
+        ricVault.lockFor(msg.sender, singleWithdrawLockPeriod, amount);
+
+        // transfer the requiested tokens
         from.safeTransfer(msg.sender, _reward);
 
         lock = false;
         emit WithdrawToken(msg.sender, from, amount, _reward);
     }
 
-    function withdraw(
+    function withdrawThree(
         IERC20 first,
         IERC20 second,
         IERC20 third,
         uint256 amount
     ) external {
+        require(addressAdded[address(first)], "939");
+        require(addressAdded[address(second)], "939");
+        require(addressAdded[address(third)], "939");
+
+        require(!lock, "935");
+        lock = true;
         require(proposals.length >= 3, "936");
-        require(ric.balanceOf(msg.sender) > amount, "934");
+        require(ric.balanceOf(msg.sender) >= amount, "934");
         uint256 firstReward = calculateWithdraw(first, amount);
         require(firstReward < first.balanceOf(address(this)), "927");
         uint256 secondReward = calculateWithdraw(second, amount);
         require(secondReward < second.balanceOf(address(this)), "927");
         uint256 thirdReward = calculateWithdraw(third, amount);
         require(thirdReward < third.balanceOf(address(this)), "927");
-        require(!lock, "935");
-        lock = true;
-        // Deposit the RIC to the staking
-        staking.depositRewards(amount);
+
+        ricVault.lockFor(msg.sender, trippleWithdrawLockPeriod, amount);
 
         // and transfer him the requested tokens
         first.safeTransfer(msg.sender, firstReward);
