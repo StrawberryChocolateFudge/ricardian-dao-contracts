@@ -39,6 +39,28 @@ contract RicVault {
         feeDao = _feedao_;
     }
 
+    function lockFunds(uint256 _period_, uint256 _amount_)
+        external
+        returns (LockedTokens memory)
+    {
+        require(lock == 0, "Locked");
+        lock = 1;
+        require(ric.balanceOf(msg.sender) >= _amount_, "934");
+        ric.safeTransferFrom(msg.sender, address(this), _amount_);
+        lockIndex[msg.sender] += 1;
+        inVault[msg.sender][lockIndex[msg.sender]] = LockedTokens({
+            owner: msg.sender,
+            created: block.number,
+            period: _period_,
+            lockedAmount: _amount_,
+            released: false
+        });
+        totalLocked += _amount_;
+        emit LockedFunds(msg.sender, _period_, _amount_);
+        lock = 0;
+        return inVault[msg.sender][lockIndex[msg.sender]];
+    }
+
     function lockFor(
         address _owner_,
         uint256 _period_,
@@ -70,7 +92,7 @@ contract RicVault {
         require(inVault[msg.sender][_index_].owner == msg.sender, "941");
         require(
             inVault[msg.sender][_index_].created +
-                inVault[msg.sender][_index_].period >
+                inVault[msg.sender][_index_].period <
                 block.number,
             "942"
         );
