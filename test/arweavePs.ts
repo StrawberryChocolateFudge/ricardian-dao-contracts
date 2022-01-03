@@ -1,8 +1,9 @@
 import { expect } from "chai";
+// eslint-disable-next-line node/no-missing-import
 import { expectRevert, setUp } from "./setup";
 
 describe("ArweavePS", async function () {
-  it("sets a PS address", async () => {
+  it("sets a PS address, stops PS, staking error check ", async () => {
     const { owner, arweaveps } = await setUp(true);
 
     expect(
