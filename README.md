@@ -317,3 +317,25 @@ Emitted when a removal proposal is closed.
 935: Locked!
 
 936: Not Enough tokens to withdraw from
+
+937: Only owner
+
+938: You expressed your opinion already!
+
+939: Not an accepted address
+
+940: Only feedao can call this
+
+941: Wrong vault
+
+942: Still locked
+
+943: It's released already
+
+944: You have a pending proposal already.
+
+945: Not rejected
+
+946: Not enough suspicion
+
+947: Already penalized
