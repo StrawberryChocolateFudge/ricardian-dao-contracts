@@ -6,6 +6,7 @@ import {
   approveSpend,
   expectRevert,
   mineBlocks,
+  // eslint-disable-next-line node/no-missing-import
 } from "./setup";
 import { ethers } from "hardhat";
 
@@ -138,5 +139,17 @@ describe("daoStaking", async function () {
 
     // I expect claimReward fails here
     await expectRevert(() => daoStaking.connect(owner).claimReward(1), "927");
+  });
+
+  it("extend staketime tested", async function () {
+    throw new Error("missing");
+  });
+
+  it("penalize tested", async function () {
+    throw new Error("missing");
+  });
+
+  it("claims reward", async function () {
+    throw new Error("missing");
   });
 });
