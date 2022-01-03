@@ -1,5 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers, network } from "hardhat";
+// eslint-disable-next-line node/no-missing-import
 import { DaoStaking, Ric } from "../typechain";
 
 export async function setUp(withStake: boolean): Promise<any> {
@@ -19,7 +20,7 @@ export async function setUp(withStake: boolean): Promise<any> {
   const DaoStaking = await DAOStaking.deploy(
     ric.address,
     arweaveps.address,
-    100 // The staki is locked for only 100 blocks for testing purposeszs
+    100 // The staking is locked for only 100 blocks for testing purposeszs
   );
   const daoStaking = await DaoStaking.deployed();
   await arweaveps.setStakingLib(daoStaking.address);
@@ -35,14 +36,21 @@ export async function setUp(withStake: boolean): Promise<any> {
   await catalogDAO.deployed();
   daoStaking.setCatalogDao(catalogDAO.address);
 
-  const TreasuryBoard = await ethers.getContractFactory("TreasuryBoard");
-  const treasuryBoard = await TreasuryBoard.deploy(
+  const FeeDAO = await ethers.getContractFactory("FeeDao");
+  const feeDao = await FeeDAO.deploy(
     ric.address,
     daoStaking.address,
-    10 // Poll period of 10 blocks for testing
+    catalogDAO.address,
+    10
   );
+  const feedao = await feeDao.deployed();
 
-  const treasuryboard = treasuryBoard.deployed();
+  const RicVault = await ethers.getContractFactory("RicVault");
+  const ricVault = await RicVault.deploy(ric.address);
+  const ricvault = await ricVault.deployed();
+
+  await feedao.setRicVault(ricvault.address);
+  await ricvault.setFeeDao(feedao.address);
 
   catalogDAO.setTerms("url", "value");
   catalogDAO.connect(owner).accept("value");
@@ -50,6 +58,22 @@ export async function setUp(withStake: boolean): Promise<any> {
   catalogDAO.connect(participant2).accept("value");
   catalogDAO.connect(participant3).accept("value");
   catalogDAO.connect(participant4).accept("value");
+
+  const FEEToken1 = await ethers.getContractFactory("Ric");
+  const feeToken1 = await FEEToken1.deploy(ethers.utils.parseEther("10000000"));
+  const feetoken1 = await feeToken1.deployed();
+
+  const FEEToken2 = await ethers.getContractFactory("Ric");
+  const feeToken2 = await FEEToken2.deploy(ethers.utils.parseEther("10000000"));
+  const feetoken2 = await feeToken2.deployed();
+
+  const FEEToken3 = await ethers.getContractFactory("Ric");
+  const feeToken3 = await FEEToken3.deploy(ethers.utils.parseEther("10000000"));
+  const feetoken3 = await feeToken3.deployed();
+
+  const FEEToken4 = await ethers.getContractFactory("Ric");
+  const feeToken4 = await FEEToken4.deploy(ethers.utils.parseEther("10000000"));
+  const feetoken4 = await feeToken4.deployed();
 
   if (withStake) {
     await dropTokens(
@@ -90,7 +114,12 @@ export async function setUp(withStake: boolean): Promise<any> {
     arweaveps,
     ric,
     daoStaking,
-    treasuryboard,
+    feedao,
+    feetoken1,
+    feetoken2,
+    feetoken3,
+    feetoken4,
+    ricvault,
   };
 }
 
