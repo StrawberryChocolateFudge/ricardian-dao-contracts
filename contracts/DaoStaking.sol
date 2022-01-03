@@ -17,8 +17,8 @@ contract DaoStaking is Ownable {
     IERC20 private _token; // The Ric token
 
     uint256 private constant STAKINGREQUIREMENT = 30e18; // Required tokens to stake.
-    uint256 private constant REWARD = 10000e18; // Reward payed out to accepted proposal creators!
-
+    uint256 private constant MAXREWARD = 1000e18; // Reward payed out to accepted proposal creators!
+    uint256 private constant FEATUREREWARD = 300e18;
     CatalogDao private catalogDao;
     ArweavePS private arweavePS;
     uint256 private totalStaked;
@@ -73,7 +73,7 @@ contract DaoStaking is Ownable {
             uint256
         )
     {
-        return (STAKINGREQUIREMENT, stakingBlocks, REWARD);
+        return (STAKINGREQUIREMENT, stakingBlocks, MAXREWARD);
     }
 
     function setCatalogDao(CatalogDao _address) external onlyOwner {
@@ -142,26 +142,47 @@ contract DaoStaking is Ownable {
 
         require(stakers[msg.sender], "919");
 
-        require(availableReward > REWARD, "927");
-
         // Use the catalogDAO to get the rank of the user
         uint8 rank = catalogDao.getRank(msg.sender);
         require(rank > 0, "929");
 
-        //if he has accepted smart contract he didnt get reward for, yet.
         AcceptedSmartContractProposal memory proposal = catalogDao
             .getAcceptedSCProposalsByIndex(forProposal);
 
+        uint256 reward = getActualREWARD(
+            proposal.hasFrontend,
+            proposal.hasFees
+        );
+
+        require(availableReward > reward, "927");
         require(proposal.creator == msg.sender, "930");
+
+        // Here I check if this proposal has been rewarded already.
         require(!rewardedProposals[proposal.arweaveTxId], "931");
 
         rewardedProposals[proposal.arweaveTxId] = true;
 
         //and transfer the reward
 
-        availableReward -= REWARD;
+        availableReward -= reward;
 
-        _token.safeTransfer(msg.sender, REWARD);
+        _token.safeTransfer(msg.sender, reward);
         emit ClaimReward(msg.sender, forProposal, availableReward);
+    }
+
+    function getActualREWARD(bool hasFrontend, bool hasFees)
+        internal
+        pure
+        returns (uint256)
+    {
+        if (hasFrontend && hasFees) {
+            return MAXREWARD;
+        } else if (hasFees) {
+            return FEATUREREWARD + FEATUREREWARD;
+        } else if (hasFrontend) {
+            return FEATUREREWARD + FEATUREREWARD;
+        } else {
+            return FEATUREREWARD;
+        }
     }
 }
