@@ -16,6 +16,8 @@ struct CatalogState {
     mapping(address => MyProposals) myProposals;
     mapping(uint256 => RemovalProposal) removalProposals;
     uint256 removalProposalIndex;
+    mapping(address => mapping(uint256 => bool)) likedAlready;
+    mapping(address => bool) hasPendingSmartContractProposal;
 }
 
 //TODO: All Accepted, removal and removedFromMe txIds could be also stored in a struct for easy access
@@ -46,12 +48,18 @@ struct SmartContractProposal {
     uint256 suspicious; // Is this suspicious, seems to be malicious?
     bool penalized; //Malicious users loose their stake
     bool closed;
+    bool hasFrontend;
+    bool hasFees;
 }
 
 struct AcceptedSmartContractProposal {
     string arweaveTxId;
     address creator;
     bool removed;
+    bool hasFrontend;
+    bool hasFees;
+    uint256 likes;
+    uint256 dislikes;
 }
 
 struct RemovalProposal {
@@ -196,8 +204,11 @@ library CatalogDaoLib {
 
     function proposeNewSmartContract(
         CatalogState storage self,
-        string calldata _arweaveTxId
+        string calldata _arweaveTxId,
+        bool _hasFrontEnd,
+        bool _hasFees
     ) external returns (uint256) {
+        require(!self.hasPendingSmartContractProposal[msg.sender], "944");
         // The sender must have high enough rank
         require(self.rank[msg.sender] > 0, "911");
         self.smartContractProposalIndex += 1;
@@ -212,7 +223,9 @@ library CatalogDaoLib {
             rejections: 0,
             suspicious: 0,
             closed: false,
-            penalized: false
+            penalized: false,
+            hasFrontend: _hasFrontEnd,
+            hasFees: _hasFees
         });
 
         bytes32 sCHash = smartContractProposalHash(
@@ -223,6 +236,8 @@ library CatalogDaoLib {
         self.myProposals[msg.sender].smartContract.push(
             self.smartContractProposalIndex
         );
+
+        self.hasPendingSmartContractProposal[msg.sender] = true;
         return self.smartContractProposalIndex;
     }
 
@@ -300,25 +315,22 @@ library CatalogDaoLib {
         require(
             self.smartContractProposals[sCIndex].rejections >
                 self.smartContractProposals[sCIndex].approvals,
-            "Not rejected"
+            "945"
         );
 
-        require(self.smartContractProposals[sCIndex].closed, "Not closed");
+        require(!self.smartContractProposals[sCIndex].closed, "917");
         // More than half of the rejections find it suspicious.
 
         // If there are more than 9 suspicious points
-        require(
-            9 < self.smartContractProposals[sCIndex].suspicious,
-            "Not enough suspicion"
-        );
-        require(
-            !self.smartContractProposals[sCIndex].penalized,
-            "Already penalized"
-        );
+        require(9 < self.smartContractProposals[sCIndex].suspicious, "946");
+        require(!self.smartContractProposals[sCIndex].penalized, "947");
         self.smartContractProposals[sCIndex].penalized = true;
+        self.hasPendingSmartContractProposal[
+            self.smartContractProposals[sCIndex].creator
+        ] = false;
         // The proposal can be penalized
-        staking.penalize(self.acceptedSCProposals[sCIndex].creator);
-        self.rank[self.acceptedSCProposals[sCIndex].creator] = 0;
+        staking.penalize(self.smartContractProposals[sCIndex].creator);
+        self.rank[self.smartContractProposals[sCIndex].creator] = 0;
     }
 
     function closeSmartContractProposal(
@@ -340,6 +352,7 @@ library CatalogDaoLib {
         require(!self.smartContractProposals[sCIndex].closed, "917");
 
         self.smartContractProposals[sCIndex].closed = true;
+        self.hasPendingSmartContractProposal[msg.sender] = false;
 
         // if the amount of approvals is more than 10 and the sender didnt get his rank reduced in the meanwhile
         if (
@@ -358,7 +371,13 @@ library CatalogDaoLib {
                         .smartContractProposals[sCIndex]
                         .arweaveTxId,
                     creator: msg.sender,
-                    removed: false
+                    removed: false,
+                    hasFrontend: self
+                        .smartContractProposals[sCIndex]
+                        .hasFrontend,
+                    hasFees: self.smartContractProposals[sCIndex].hasFees,
+                    likes: 0,
+                    dislikes: 0
                 });
 
                 self.myProposals[msg.sender].acceptedSCProposals.push(
@@ -545,4 +564,19 @@ library CatalogDaoLib {
     }
 
     //<-- Removal proposal functions end -->
+
+    function expressOpinion(
+        CatalogState storage self,
+        uint256 _index_,
+        bool likedIt
+    ) external returns (AcceptedSmartContractProposal memory) {
+        require(self.likedAlready[msg.sender][_index_] == false, "938");
+        if (likedIt) {
+            self.acceptedSCProposals[_index_].likes += 1;
+        } else {
+            self.acceptedSCProposals[_index_].dislikes += 1;
+        }
+        self.likedAlready[msg.sender][_index_] = true;
+        return self.acceptedSCProposals[_index_];
+    }
 }
