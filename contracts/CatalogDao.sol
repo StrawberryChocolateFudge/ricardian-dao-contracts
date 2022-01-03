@@ -336,4 +336,20 @@ contract CatalogDao is SimpleTerms {
     {
         return state.expressOpinion(_index_, likedIt);
     }
+
+    function getAllAccepted()
+        external
+        view
+        returns (AcceptedSmartContractProposal[] memory)
+    {
+        return state.allAccepted;
+    }
+
+    function getAllRemoved()
+        external
+        view
+        returns (AcceptedSmartContractProposal[] memory)
+    {
+        return state.allRemoved;
+    }
 }

@@ -377,10 +377,13 @@ describe("CatalogDao", function () {
                       ).acceptedSCProposals.length
                     ).equal(7);
 
+                    let accepted = await catalogDAO.getAllAccepted();
+                    expect(accepted.length).to.equal(10);
+                    let removed = await catalogDAO.getAllRemoved();
+                    expect(removed.length).to.equal(0);
                     await mineBlocks(100).then(async () => {
                       const removal1 =
                         await catalogDAO.getRemovalProposalByIndex(1);
-
                       expect(removal1.approvals).equal(10);
                       expect(removal1.rejections).equal(0);
 
@@ -394,6 +397,11 @@ describe("CatalogDao", function () {
                       await catalogDAO
                         .connect(participant1)
                         .closeSmartContractProposal(12);
+
+                      accepted = await catalogDAO.getAllAccepted();
+                      expect(accepted.length).to.equal(10);
+                      removed = await catalogDAO.getAllRemoved();
+                      expect(removed.length).to.equal(1);
 
                       // The proposals remain 7
                       expect(

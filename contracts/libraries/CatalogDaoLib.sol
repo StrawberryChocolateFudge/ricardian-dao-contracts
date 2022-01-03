@@ -16,11 +16,14 @@ struct CatalogState {
     mapping(address => MyProposals) myProposals;
     mapping(uint256 => RemovalProposal) removalProposals;
     uint256 removalProposalIndex;
+    // did you express your opinions already about a contract?
     mapping(address => mapping(uint256 => bool)) likedAlready;
+    // only one proposal can be active at a time
     mapping(address => bool) hasPendingSmartContractProposal;
+    // If I push all into an array, I can have more easy access for them from the front end
+    AcceptedSmartContractProposal[] allAccepted;
+    AcceptedSmartContractProposal[] allRemoved;
 }
-
-//TODO: All Accepted, removal and removedFromMe txIds could be also stored in a struct for easy access
 
 struct MyProposals {
     uint256[] rank;
@@ -379,10 +382,14 @@ library CatalogDaoLib {
                     likes: 0,
                     dislikes: 0
                 });
-
                 self.myProposals[msg.sender].acceptedSCProposals.push(
                     self.acceptedSCProposalIndex
                 );
+                // all the accepted contracts are stored in an array
+                self.allAccepted.push(
+                    self.acceptedSCProposals[self.acceptedSCProposalIndex]
+                );
+
                 // If the proposal was accepted, I increase the Rank of the creator
                 // If the rank of the sender was
                 if (
@@ -547,7 +554,9 @@ library CatalogDaoLib {
                 // If the proposal was accepted, I remove the approved proposal
                 // If the contract was marked malicious, I remove the rank of it's creator
                 self.acceptedSCProposals[prop.acceptedIndex].removed = true;
-
+                self.allRemoved.push(
+                    self.acceptedSCProposals[prop.acceptedIndex]
+                );
                 // If it was marked malicious, I reduce the rank of the offender
                 if (self.removalProposals[removalIndex].malicious) {
                     staking.penalize(
