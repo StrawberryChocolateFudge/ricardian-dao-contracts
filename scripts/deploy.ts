@@ -12,9 +12,20 @@ async function main() {
   // If this script is run directly using `node` you may want to call compile
   // manually to make sure everything is compiled
   // await hre.run('compile');
+
+  const RICTOTALSUPPLY = "10000000";
+  const FEEDAOPOLLPERIOD = 10;
+  const CATALOGPOLLPERIOD = 10;
+  const SignUp = await ethers.getContractFactory("SimpleTerms");
+  const signUp = await SignUp.deploy();
+  const signup = await signUp.deployed();
+
   const RicToken = await ethers.getContractFactory("Ric");
 
-  const ricToken = await RicToken.deploy(ethers.utils.parseEther("10000000"));
+  const ricToken = await RicToken.deploy(
+    ethers.utils.parseEther(RICTOTALSUPPLY)
+  );
+
   const ric = await ricToken.deployed();
 
   const ArweavePS = await ethers.getContractFactory("ArweavePS");
@@ -38,21 +49,36 @@ async function main() {
   });
   // The voting period should be 302400 on Harmony network
   // It's 10 on Hardhat
-  const catalogDAO = await CatalogDAO.deploy(10, daoStaking.address);
+  const catalogDAO = await CatalogDAO.deploy(
+    CATALOGPOLLPERIOD,
+    daoStaking.address
+  );
   await catalogDAO.deployed();
   daoStaking.setCatalogDao(catalogDAO.address);
 
-  const TreasuryBoard = await ethers.getContractFactory("TreasuryBoard");
-  const treasuryBoard = await TreasuryBoard.deploy(
+  const FeeDAO = await ethers.getContractFactory("FeeDao");
+  const feeDao = await FeeDAO.deploy(
     ric.address,
     daoStaking.address,
-    10 // Poll period of 10 blocks for testing
+    catalogDAO.address,
+    FEEDAOPOLLPERIOD
   );
+  const feedao = await feeDao.deployed();
+
+  const RicVault = await ethers.getContractFactory("RicVault");
+  const ricVault = await RicVault.deploy(ric.address);
+  const ricvault = await ricVault.deployed();
+
+  await feedao.setRicVault(ricvault.address);
+  await ricvault.setFeeDao(feedao.address);
+  console.log("Signup deployed to:", signup.address);
+  console.log("CatalogDAO library deployed to:", catalogdaolib.address);
   console.log("Catalogdao deployed to:", catalogDAO.address);
   console.log("Ric deployed to:", ric.address);
   console.log("ArweavePs deployed to:", arweaveps.address);
   console.log("DaoStaking deployed to:", daoStaking.address);
-  console.log("TreasuryBoard deployed to:", treasuryBoard.address);
+  console.log("FeeDao deployed to:", feedao.address);
+  console.log("Ric vault deployed to: ", ricvault.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
