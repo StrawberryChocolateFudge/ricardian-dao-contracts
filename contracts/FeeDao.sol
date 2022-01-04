@@ -30,7 +30,7 @@ struct Token {
 uint256 constant requiredBalance = 1000e18;
 uint256 constant precision = 1000000000; //The precision of reward calculation, 9 decimals
 uint256 constant singleWithdrawLockPeriod = 100000; //blocks
-uint256 constant trippleWithdrawLockPeriod = 1000000; // blocks
+uint256 constant trippleWithdrawLockPeriod = 300000; // blocks
 
 contract FeeDao {
     using SafeERC20 for IERC20;
