@@ -473,7 +473,7 @@ describe("CatalogDao", function () {
     });
   });
 
-  it("a suspicious smart contract", async () => {
+  it("a suspicious smart contract, testing penalize also", async () => {
     const { catalogDAO, owner, participant1, daoStaking } = await setUp(true);
 
     await catalogDAO.connect(participant1).proposeNewRank("repoURL");
