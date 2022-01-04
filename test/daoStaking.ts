@@ -1,9 +1,6 @@
 import { expect } from "chai";
 import {
   setUp,
-  dropTokens,
-  stakeAll,
-  approveSpend,
   expectRevert,
   mineBlocks,
   // eslint-disable-next-line node/no-missing-import
@@ -19,34 +16,7 @@ describe("daoStaking", async function () {
       participant3,
       participant4,
       daoStaking,
-      ric,
-    } = await setUp(false);
-    await dropTokens(
-      ric,
-      owner,
-      participant1,
-      participant2,
-      participant3,
-      participant4
-    );
-    await approveSpend(
-      ric,
-      daoStaking,
-      owner,
-      participant1,
-      participant2,
-      participant3,
-      participant4
-    );
-
-    await stakeAll(
-      daoStaking,
-      owner,
-      participant1,
-      participant2,
-      participant3,
-      participant4
-    );
+    } = await setUp(true);
     expect(await daoStaking.isStaking(owner.address)).to.equal(true);
     expect(await daoStaking.isStaking(participant1.address)).to.equal(true);
     expect(await daoStaking.isStaking(participant2.address)).to.equal(true);
@@ -142,14 +112,199 @@ describe("daoStaking", async function () {
   });
 
   it("extend staketime tested", async function () {
-    throw new Error("missing");
+    const { owner, participant1, daoStaking, catalogDAO } = await setUp(true);
+
+    await expectRevert(
+      () => daoStaking.extendStakeTime(participant1.address),
+      "925"
+    );
+
+    const stakeDate1 = await daoStaking.getStakeDateFor(participant1.address);
+    await catalogDAO.connect(participant1).proposeNewRank("");
+
+    const stakeDate2 = await daoStaking.getStakeDateFor(participant1.address);
+    expect(stakeDate2).above(stakeDate1);
+
+    const ownerStakeDate1 = await daoStaking.getStakeDateFor(owner.address);
+    await catalogDAO.connect(owner).voteOnNewRank(1, true);
+    const ownerStakeDate2 = await daoStaking.getStakeDateFor(owner.address);
+    expect(ownerStakeDate2).above(ownerStakeDate1);
   });
 
-  it("penalize tested", async function () {
-    throw new Error("missing");
+  it("penalize access control tested", async function () {
+    // Penalize is also tested in the catalogDao
+    const { participant1, daoStaking } = await setUp(true);
+
+    await expectRevert(() => daoStaking.penalize(participant1.address), "925");
   });
 
   it("claims reward", async function () {
-    throw new Error("missing");
+    const {
+      catalogDAO,
+      owner,
+      participant1,
+      participant2,
+      participant3,
+      participant4,
+      participant5,
+      daoStaking,
+      ric,
+    } = await setUp(true);
+    await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+    await catalogDAO.connect(participant2).proposeNewRank("repoURL2");
+    await catalogDAO.connect(participant3).proposeNewRank("repoURL3");
+    await catalogDAO.connect(participant4).proposeNewRank("repoURL3");
+
+    await catalogDAO.connect(owner).voteOnNewRank(1, true);
+    await catalogDAO.connect(owner).voteOnNewRank(2, true);
+    await catalogDAO.connect(owner).voteOnNewRank(3, true);
+    await catalogDAO.connect(owner).voteOnNewRank(4, true);
+
+    await mineBlocks(100).then(async () => {
+      await catalogDAO.connect(participant1).closeRankProposal(1);
+      await catalogDAO.connect(participant2).closeRankProposal(2);
+      await catalogDAO.connect(participant3).closeRankProposal(3);
+      await catalogDAO.connect(participant4).closeRankProposal(4);
+
+      await catalogDAO
+        .connect(participant1)
+        .proposeNewSmartContract("arweaveTXId1", false, false); // Has no fees or front end
+
+      await catalogDAO
+        .connect(participant2)
+        .proposeNewSmartContract("arweaveTXId2", true, false); // has frontend, no fees
+
+      await catalogDAO
+        .connect(participant3)
+        .proposeNewSmartContract("arweaveTXId3", false, true); // has fees only
+
+      await catalogDAO
+        .connect(participant4)
+        .proposeNewSmartContract("arweaveTXId4", true, true); // has both fees and frontend
+
+      await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(2, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(3, true, false);
+      await catalogDAO.connect(owner).voteOnNewSmartContract(4, true, false);
+
+      await mineBlocks(100).then(async () => {
+        await catalogDAO.connect(participant1).closeSmartContractProposal(1);
+        await catalogDAO.connect(participant2).closeSmartContractProposal(2);
+        await catalogDAO.connect(participant3).closeSmartContractProposal(3);
+        await catalogDAO.connect(participant4).closeSmartContractProposal(4);
+
+        // they got all voted in, now I start claiming rewards
+
+        const basicReward = await daoStaking.getActualReward(false, false);
+        const frontEndReward = await daoStaking.getActualReward(true, false);
+        const hasFeesReward = await daoStaking.getActualReward(false, true);
+        const maxReward = await daoStaking.getActualReward(true, true);
+
+        expect(basicReward).equal(ethers.utils.parseEther("300"));
+        expect(frontEndReward).to.equal(ethers.utils.parseEther("600"));
+        expect(hasFeesReward).to.equal(ethers.utils.parseEther("600"));
+        expect(maxReward).to.equal(ethers.utils.parseEther("1000"));
+
+        expect(await daoStaking.getAvailableReward()).to.equal(
+          ethers.utils.parseEther("0")
+        );
+
+        // Tries to take reward, but not enough available
+        await expectRevert(
+          () => daoStaking.connect(participant1).claimReward(1),
+          "927"
+        );
+
+        await ric.approve(
+          daoStaking.address,
+          ethers.utils.parseEther("100000")
+        );
+
+        // owner deposits reward, this is enough for 100 maxRewards
+        await expect(
+          await daoStaking.depositRewards(ethers.utils.parseEther("100000"))
+        ).to.emit(daoStaking, "RewardDeposit");
+
+        expect(await daoStaking.getAvailableReward()).to.equal(
+          ethers.utils.parseEther("100000")
+        );
+
+        // Tries to take somebody else's reward
+        await expectRevert(
+          () => daoStaking.connect(participant1).claimReward(2),
+          "930"
+        );
+
+        await ric.transfer(
+          participant5.address,
+          ethers.utils.parseEther("100")
+        );
+        // A non-staker tries to withdraw
+        await expectRevert(
+          () => daoStaking.connect(participant5).claimReward(1),
+          "919"
+        );
+        await ric
+          .connect(participant5)
+          .approve(daoStaking.address, ethers.utils.parseEther("100000"));
+        // now he stakes but has no rank
+        await daoStaking.connect(participant5).stake();
+        await expectRevert(
+          () => daoStaking.connect(participant5).claimReward(1),
+          "929"
+        );
+
+        const balanceOfPar1 = await ric.balanceOf(participant1.address);
+        console.log(balanceOfPar1);
+        const balanceOfPar2 = await ric.balanceOf(participant2.address);
+        console.log(balanceOfPar2);
+
+        const balanceOfPar3 = await ric.balanceOf(participant3.address);
+        console.log(balanceOfPar3);
+
+        const balanceOfPar4 = await ric.balanceOf(participant4.address);
+        console.log(balanceOfPar4);
+
+        // takes the reward
+        expect(await daoStaking.connect(participant1).claimReward(1)).to.emit(
+          daoStaking,
+          "ClaimReward"
+        );
+        expect(await daoStaking.connect(participant2).claimReward(2)).to.emit(
+          daoStaking,
+          "ClaimReward"
+        );
+        expect(await daoStaking.connect(participant3).claimReward(3)).to.emit(
+          daoStaking,
+          "ClaimReward"
+        );
+        expect(await daoStaking.connect(participant4).claimReward(4)).to.emit(
+          daoStaking,
+          "ClaimReward"
+        );
+        // Can't claim twice
+        await expectRevert(
+          () => daoStaking.connect(participant1).claimReward(1),
+          "931"
+        );
+
+        const balanceAfterRewardPar1 = await ric.balanceOf(
+          participant1.address
+        );
+        const balanceAfterRewardPar2 = await ric.balanceOf(
+          participant2.address
+        );
+        const balanceAfterRewardPar3 = await ric.balanceOf(
+          participant3.address
+        );
+        const balanceAfterRewardPar4 = await ric.balanceOf(
+          participant4.address
+        );
+        expect(balanceAfterRewardPar1).equal(ethers.utils.parseEther("370"));
+        expect(balanceAfterRewardPar2).equal(ethers.utils.parseEther("670"));
+        expect(balanceAfterRewardPar3).equal(ethers.utils.parseEther("670"));
+        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("1070"));
+      });
+    });
   });
 });
