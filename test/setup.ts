@@ -4,8 +4,19 @@ import { ethers, network } from "hardhat";
 import { DaoStaking, Ric } from "../typechain";
 
 export async function setUp(withStake: boolean): Promise<any> {
-  const [owner, participant1, participant2, participant3, participant4] =
-    await ethers.getSigners();
+  const [
+    owner,
+    participant1,
+    participant2,
+    participant3,
+    participant4,
+    participant5,
+  ] = await ethers.getSigners();
+
+  // A simple terms for signing up, which means accepting the terms
+  const SignUp = await ethers.getContractFactory("SimpleTerms");
+  const signUp = await SignUp.deploy();
+  const signup = await signUp.deployed();
 
   const RicToken = await ethers.getContractFactory("Ric");
 
@@ -111,6 +122,7 @@ export async function setUp(withStake: boolean): Promise<any> {
     participant2,
     participant3,
     participant4,
+    participant5,
     arweaveps,
     ric,
     daoStaking,
@@ -120,6 +132,7 @@ export async function setUp(withStake: boolean): Promise<any> {
     feetoken3,
     feetoken4,
     ricvault,
+    signup,
   };
 }
 
