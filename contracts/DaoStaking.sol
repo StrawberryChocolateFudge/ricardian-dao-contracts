@@ -19,6 +19,7 @@ contract DaoStaking is Ownable {
     uint256 private constant STAKINGREQUIREMENT = 30e18; // Required tokens to stake.
     uint256 private constant MAXREWARD = 1000e18; // Reward payed out to accepted proposal creators!
     uint256 private constant FEATUREREWARD = 300e18;
+
     CatalogDao private catalogDao;
     ArweavePS private arweavePS;
     uint256 private totalStaked;
@@ -29,6 +30,8 @@ contract DaoStaking is Ownable {
     mapping(address => bool) private stakers;
     mapping(address => uint256) private stakeDate;
     mapping(string => bool) private rewardedProposals;
+
+    uint8 private lock = 0;
 
     event Stake(address indexed _address, uint256 totalStaked);
     event Unstake(address indexed _address, uint256 totalStaked);
@@ -74,6 +77,18 @@ contract DaoStaking is Ownable {
         )
     {
         return (STAKINGREQUIREMENT, stakingBlocks, MAXREWARD);
+    }
+
+    function getStakeDateFor(address _address_)
+        external
+        view
+        returns (uint256)
+    {
+        if (stakers[_address_]) {
+            return stakeDate[_address_];
+        } else {
+            return 0;
+        }
     }
 
     function setCatalogDao(CatalogDao _address) external onlyOwner {
@@ -139,7 +154,8 @@ contract DaoStaking is Ownable {
 
     function claimReward(uint256 forProposal) external {
         //If you are staking, you can claim rewards for accepted smart contracts
-
+        require(lock == 0, "935");
+        lock = 1;
         require(stakers[msg.sender], "919");
 
         // Use the catalogDAO to get the rank of the user
@@ -149,7 +165,7 @@ contract DaoStaking is Ownable {
         AcceptedSmartContractProposal memory proposal = catalogDao
             .getAcceptedSCProposalsByIndex(forProposal);
 
-        uint256 reward = getActualREWARD(
+        uint256 reward = getActualReward(
             proposal.hasFrontend,
             proposal.hasFees
         );
@@ -168,10 +184,11 @@ contract DaoStaking is Ownable {
 
         _token.safeTransfer(msg.sender, reward);
         emit ClaimReward(msg.sender, forProposal, availableReward);
+        lock = 0;
     }
 
-    function getActualREWARD(bool hasFrontend, bool hasFees)
-        internal
+    function getActualReward(bool hasFrontend, bool hasFees)
+        public
         pure
         returns (uint256)
     {
