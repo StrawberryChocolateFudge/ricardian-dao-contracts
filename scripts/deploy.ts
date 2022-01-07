@@ -13,9 +13,42 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  const RICTOTALSUPPLY = "10000000";
+  const RICTOTALSUPPLY = "100000000"; // 100.000.000
+  const DAOSTAKINGALLOCATION = "20000000"; // 20.000.000
+  const MEMBERSHIPALLOCATION = "40000000"; // 40.000.000
+
+  const RICKVAULTALLOCATION = "20000000"; // TOTAL RIC ALLOCATION 20.000.000
+  const RICTOLOCK = "2000000"; // 2.000.000 Lock this amount for RICLOCKINTERVAL
+  const RICLOCKINTERVAL = 7000000; // 7.000.000
+
   const FEEDAOPOLLPERIOD = 10;
   const CATALOGPOLLPERIOD = 10;
+  // TODO: Test deployment script
+  await deploymentScript({
+    RICTOTALSUPPLY,
+    DAOSTAKINGALLOCATION,
+    MEMBERSHIPALLOCATION,
+    RICKVAULTALLOCATION,
+    RICTOLOCK,
+    RICLOCKINTERVAL,
+    FEEDAOPOLLPERIOD,
+    CATALOGPOLLPERIOD,
+  });
+}
+
+type DeploymentArg = {
+  RICTOTALSUPPLY: string;
+  DAOSTAKINGALLOCATION: string;
+  MEMBERSHIPALLOCATION: string;
+  RICKVAULTALLOCATION: string;
+  RICTOLOCK: string;
+  RICLOCKINTERVAL: number;
+  FEEDAOPOLLPERIOD: number;
+  CATALOGPOLLPERIOD: number;
+};
+
+// Export for testing
+export async function deploymentScript(arg: DeploymentArg) {
   const SignUp = await ethers.getContractFactory("SimpleTerms");
   const signUp = await SignUp.deploy();
   const signup = await signUp.deployed();
@@ -23,10 +56,19 @@ async function main() {
   const RicToken = await ethers.getContractFactory("Ric");
 
   const ricToken = await RicToken.deploy(
-    ethers.utils.parseEther(RICTOTALSUPPLY)
+    ethers.utils.parseEther(arg.RICTOTALSUPPLY)
   );
 
   const ric = await ricToken.deployed();
+
+  const RICSale = await ethers.getContractFactory("Ricsale");
+
+  // TODO: THIS IS MY LIVE HARTMONY ADDRESS. DO NOT USE FOR TESTING!!
+  const RicSale = await RICSale.deploy(
+    "0xdf16399e6f10bbc1c07c88c6c70116182fa2e118",
+    ric.address
+  );
+  const ricsale = await RicSale.deployed();
 
   const ArweavePS = await ethers.getContractFactory("ArweavePS");
   const arweavePS = await ArweavePS.deploy();
@@ -36,7 +78,7 @@ async function main() {
   const DaoStaking = await DAOStaking.deploy(
     ric.address,
     arweaveps.address,
-    100 // The staki is locked for only 100 blocks for testing purposeszs
+    100 // The stake is locked for only 100 blocks for testing purposess
   );
   const daoStaking = await DaoStaking.deployed();
   await arweaveps.setStakingLib(daoStaking.address);
@@ -50,7 +92,7 @@ async function main() {
   // The voting period should be 302400 on Harmony network
   // It's 10 on Hardhat
   const catalogDAO = await CatalogDAO.deploy(
-    CATALOGPOLLPERIOD,
+    arg.CATALOGPOLLPERIOD,
     daoStaking.address
   );
   await catalogDAO.deployed();
@@ -61,7 +103,7 @@ async function main() {
     ric.address,
     daoStaking.address,
     catalogDAO.address,
-    FEEDAOPOLLPERIOD
+    arg.FEEDAOPOLLPERIOD
   );
   const feedao = await feeDao.deployed();
 
@@ -75,10 +117,47 @@ async function main() {
   console.log("CatalogDAO library deployed to:", catalogdaolib.address);
   console.log("Catalogdao deployed to:", catalogDAO.address);
   console.log("Ric deployed to:", ric.address);
+  console.log("Ric sale deployed to:", ricsale.address);
   console.log("ArweavePs deployed to:", arweaveps.address);
   console.log("DaoStaking deployed to:", daoStaking.address);
   console.log("FeeDao deployed to:", feedao.address);
   console.log("Ric vault deployed to: ", ricvault.address);
+
+  // Token allocation script!
+
+  // 20 % goes to the daoStaking reward
+
+  await ric.approve(
+    daoStaking.address,
+    ethers.utils.parseEther(arg.DAOSTAKINGALLOCATION)
+  );
+
+  await daoStaking.depositRewards(
+    ethers.utils.parseEther(arg.DAOSTAKINGALLOCATION)
+  );
+  // 40 % goes to the membership (crowdsale) contract
+  // No transfer, only approval
+  await ric.approve(
+    ricsale.address,
+    ethers.utils.parseEther(arg.MEMBERSHIPALLOCATION)
+  );
+
+  // 20 % goes to the Ric vault,
+  await ric.approve(
+    ricvault.address,
+    ethers.utils.parseEther(arg.RICKVAULTALLOCATION)
+  );
+
+  // Locked with increasing lock up periods for RICTOLOCK amount of tokens.
+  // 1. RICTOLOCK is 2% of the total supply
+  for (let i = 1; i <= 10; i++) {
+    await ricvault.lockFunds(
+      arg.RICLOCKINTERVAL * i,
+      ethers.utils.parseEther(arg.RICTOLOCK)
+    );
+  }
+  // 20 % Ecosystem / Liquidity / 30 RIC Grants / wallet for making proposals / Airdrops
+  // TODO: Transfered to a third wallet.
 }
 
 // We recommend this pattern to be able to use async/await everywhere
