@@ -86,6 +86,7 @@ contract CatalogDao is SimpleTerms {
     }
 
     function closeRankProposal(uint256 rankIndex) external returns (bool) {
+        daoStaking.extendStakeTime(msg.sender);
         emit ClosingRankVote(msg.sender, rankIndex);
         return state.closeRankProposal(rankIndex);
     }
@@ -256,6 +257,7 @@ contract CatalogDao is SimpleTerms {
         external
         returns (bool)
     {
+        daoStaking.extendStakeTime(msg.sender);
         emit CloseSmartContractProposal(msg.sender, sCIndex);
         return state.closeSmartContractProposal(sCIndex);
     }
@@ -321,6 +323,7 @@ contract CatalogDao is SimpleTerms {
         external
         returns (bool)
     {
+        daoStaking.extendStakeTime(msg.sender);
         emit CloseRemovalProposal(msg.sender, removalIndex);
         return state.closeRemovalProposal(daoStaking, removalIndex);
     }
