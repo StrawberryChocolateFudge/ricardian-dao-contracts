@@ -7,6 +7,10 @@ To propose a smart contract, the contents of the contract are uploaded to arweav
 
 ## External functions
 
+    function setPollPeriod(uint256 pollPeriod) external;
+
+The deployer can set the poll period
+
     function proposeNewRank(string calldata _repository)
         external
         returns (uint256);
@@ -220,7 +224,6 @@ The removal proposal object.
 
     getMyProposals() external view returns (MyProposals memory);
 
-Returns all the proposals created by the user.
 
     struct MyProposals {
         uint256[] rank;
@@ -229,6 +232,8 @@ Returns all the proposals created by the user.
         uint256[] removedFromMe;
         uint256[] removal;
     }
+
+Returns all the proposals created by the user.
 
 The object returned contains arrays of proposal Indexes.
 
@@ -242,7 +247,6 @@ The object returned contains arrays of proposal Indexes.
 
     uint256[] removal; //The list of removal proposals, created bu this address.
 
-Used for getting 5 rank proposals
 
      function getMyRankProposalsPaginated(
           uint256 first,
@@ -260,7 +264,7 @@ Used for getting 5 rank proposals
             RankProposal memory
         );
 
-Used for getting 5 smart contract proposals
+Used for getting 5 rank proposals
 
     function getMySmartContractProposalsPaginated(
     	uint256 first,
@@ -279,7 +283,7 @@ Used for getting 5 smart contract proposals
     	SmartContractProposal memory
     	);
 
-Used for getting 5 accepted smart contracts
+Used for getting 5 smart contract proposals
 
     function getAcceptedSmartContractProposalsPaginated(
     	uint256 first,
@@ -298,19 +302,25 @@ Used for getting 5 accepted smart contracts
     	AcceptedSmartContractProposal memory
     	)
 
-Used for getting all the accepted contracts
+Used for getting 5 accepted smart contracts
 
     function getAllAccepted()
     	external
     	view
     	returns (AcceptedSmartContractProposal[] memory);
 
-Used for getting all the removed contracts
+Used for getting all the accepted contracts
 
     function getAllRemoved()
         external
         view
     returns (AcceptedSmartContractProposal[] memory);
+
+Used for getting all the removed contracts
+
+    function getPollPeriod() external view returns (uint256);
+
+View the poll period with this function. The amount of blocks it takes to push throguh a proposal.
 
 ## Events
 
@@ -358,3 +368,7 @@ Emitted when a voting occurs on the removal proposal
     event CloseRemovalProposal(address indexed from, uint256 index);
 
 Emitted when a removal proposal is closed.
+
+## Inherits simple terms
+
+A ricardian is attached to this contract. The API for simple terms is available at: https://www.npmjs.com/package/@ricardianfabric/simpleterms

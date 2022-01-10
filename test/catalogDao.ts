@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { BigNumber } from "ethers";
-import { parse } from "path/posix";
 // eslint-disable-next-line node/no-missing-import
 import {
   setUp,
@@ -375,9 +374,13 @@ describe("CatalogDao", function () {
                   ).to.emit(daoStaking, "Penalize");
 
                   // This will close but not pass
-                  await catalogDAO
-                    .connect(participant1)
-                    .closeSmartContractProposal(lastPropIndex);
+                  await expectRevert(
+                    () =>
+                      catalogDAO
+                        .connect(participant1)
+                        .closeSmartContractProposal(lastPropIndex),
+                    "926"
+                  );
 
                   accepted = await catalogDAO.getAllAccepted();
                   expect(accepted.length).to.equal(28);
@@ -688,27 +691,50 @@ describe("CatalogDao", function () {
             parseEther("820")
           );
           expect(await daoStaking.getTotalStaked()).to.equal(parseEther("900"));
-          await daoStaking.connect(participant1).unStake();
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("120"));
-          expect(await ric.balanceOf(participant1.address)).to.equal(
-            parseEther("1600")
-          );
-
-          expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
-
-          await ric
-            .connect(participant1)
-            .approve(daoStaking.address, parseEther("30"));
-          await daoStaking.connect(participant1).stake();
-          await catalogDAO.connect(participant1).proposeNewRank("repoURL");
-          await catalogDAO.connect(owner).voteOnNewRank(2, true);
 
           await mineBlocks(100).then(async () => {
-            await catalogDAO.connect(participant1).closeRankProposal(2);
-            expect(await catalogDAO.getRank(participant1.address)).to.equal(1);
+            await daoStaking.connect(participant1).unStake();
+            expect(await daoStaking.getTotalStaked()).to.equal(
+              parseEther("120")
+            );
+            expect(await ric.balanceOf(participant1.address)).to.equal(
+              parseEther("1600")
+            );
+
+            expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
+
+            await ric
+              .connect(participant1)
+              .approve(daoStaking.address, parseEther("30"));
+            await daoStaking.connect(participant1).stake();
+            await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+            await catalogDAO.connect(owner).voteOnNewRank(2, true);
+
+            await mineBlocks(100).then(async () => {
+              await catalogDAO.connect(participant1).closeRankProposal(2);
+              expect(await catalogDAO.getRank(participant1.address)).to.equal(
+                1
+              );
+            });
           });
         }
       );
     });
+  });
+
+  it("set poll period", async () => {
+    const { catalogDAO, participant1 } = await setUp(true);
+
+    const pollPeriod = await catalogDAO.getPollPeriod();
+    expect(pollPeriod).to.equal(100); // testing value
+
+    await expectRevert(
+      () => catalogDAO.connect(participant1).setPollPeriod(120),
+      "937"
+    );
+
+    await catalogDAO.setPollPeriod(120);
+
+    expect(await catalogDAO.getPollPeriod()).to.equal(120);
   });
 });

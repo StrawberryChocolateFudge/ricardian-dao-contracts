@@ -40,6 +40,15 @@ contract CatalogDao is SimpleTerms {
         state.owner = msg.sender;
     }
 
+    function setPollPeriod(uint256 pollPeriod) external {
+        require(msg.sender == state.owner, "937");
+        state.pollPeriod = pollPeriod;
+    }
+
+    function getPollPeriod() external view returns (uint256) {
+        return state.pollPeriod;
+    }
+
     // <-- Rank functions start -->
     function proposeNewRank(string calldata _repository)
         external
