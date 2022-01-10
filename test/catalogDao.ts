@@ -1,8 +1,14 @@
 import { expect } from "chai";
 import { BigNumber } from "ethers";
+import { parse } from "path/posix";
 // eslint-disable-next-line node/no-missing-import
-import { setUp, expectRevert, mineBlocks } from "./setup";
-import { ethers } from "hardhat";
+import {
+  setUp,
+  expectRevert,
+  mineBlocks,
+  grindForRank,
+  parseEther,
+} from "./setup";
 
 describe("CatalogDao", function () {
   it("should create the catalogDao and add rank 10 to the deployer", async function () {
@@ -79,7 +85,7 @@ describe("CatalogDao", function () {
 
     await catalogDAO
       .connect(participant1)
-      .proposeNewSmartContract("arweavetxId", false, false);
+      .proposeNewSmartContract("arweavetxId", false, false, false, 0);
 
     const MYsmartContractProposals = await catalogDAO
       .connect(participant1)
@@ -136,7 +142,7 @@ describe("CatalogDao", function () {
 
       await catalogDAO
         .connect(participant1)
-        .proposeNewSmartContract("arweavetxId", false, false);
+        .proposeNewSmartContract("arweavetxId", false, false, false, 0);
 
       await catalogDAO.connect(participant1).getMyProposals();
       const MYsmartContractProposals = await catalogDAO
@@ -154,8 +160,23 @@ describe("CatalogDao", function () {
       await mineBlocks(100).then(async () => {
         await catalogDAO.connect(participant1).closeSmartContractProposal(1);
         // Participant says it's malicious, maybe thats why he voted agains it?
+
+        // Only rank 2 users can report other peoples malicious proposals
+        await expectRevert(
+          () =>
+            catalogDAO
+              .connect(participant2) // need to be higher than rank 1
+              .proposeContractRemoval("Discussion here", 1, true),
+          "911"
+        );
+
+        // SO I grind the participant2 a little
+        await grindForRank(catalogDAO, participant2, owner, 5, "MySCName");
+
+        expect(await catalogDAO.getRank(participant2.address)).to.equal(2);
+
         await catalogDAO
-          .connect(participant2)
+          .connect(participant2) // need to be higher than rank 1
           .proposeContractRemoval("Discussion here", 1, true);
         // Owner votes, yes remove it.
 
@@ -205,16 +226,16 @@ describe("CatalogDao", function () {
 
       await catalogDAO
         .connect(participant1)
-        .proposeNewSmartContract("sc1", false, false);
+        .proposeNewSmartContract("sc1", false, false, false, 0);
       await catalogDAO
         .connect(participant2)
-        .proposeNewSmartContract("sc2", false, false);
+        .proposeNewSmartContract("sc2", false, false, false, 0);
       await catalogDAO
         .connect(participant3)
-        .proposeNewSmartContract("sc3", false, false);
+        .proposeNewSmartContract("sc3", false, false, false, 0);
       await catalogDAO
         .connect(participant4)
-        .proposeNewSmartContract("sc4", false, false);
+        .proposeNewSmartContract("sc4", false, false, false, 0);
 
       await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
 
@@ -237,7 +258,6 @@ describe("CatalogDao", function () {
           .connect(owner)
           .votedAlreadyOnSmartContract(4, owner.address)
       ).equal(true);
-
       await mineBlocks(100).then(async () => {
         await catalogDAO.connect(participant1).closeSmartContractProposal(1);
         await catalogDAO.connect(participant2).closeSmartContractProposal(2);
@@ -249,180 +269,137 @@ describe("CatalogDao", function () {
         expect(await catalogDAO.getRank(participant3.address)).to.equal(1);
         expect(await catalogDAO.getRank(participant4.address)).to.equal(1);
 
-        await catalogDAO
-          .connect(participant1)
-          .proposeNewSmartContract("sc5", false, false);
+        await grindForRank(
+          catalogDAO,
+          participant1,
+          owner,
+          5,
+          "scproposals"
+        ).then(async () => {
+          expect(await catalogDAO.getRank(participant1.address)).to.equal(2);
 
-        await catalogDAO.connect(owner).voteOnNewSmartContract(5, true, false);
+          await grindForRank(
+            catalogDAO,
+            participant1,
+            owner,
+            15,
+            "scproposals2"
+          ).then(async () => {
+            expect(await catalogDAO.getRank(participant1.address)).to.equal(3);
+            await catalogDAO
+              .connect(participant2)
+              .proposeNewSmartContract("Sc11", false, false, false, 0);
 
-        await mineBlocks(100).then(async () => {
-          await catalogDAO.connect(participant1).closeSmartContractProposal(5);
-          await catalogDAO
-            .connect(participant1)
-            .proposeNewSmartContract("sc6", false, false);
+            let lastPropIndex =
+              await catalogDAO.getSmartContractProposalIndex();
 
-          await catalogDAO
-            .connect(owner)
-            .voteOnNewSmartContract(6, true, false);
-
-          await mineBlocks(100).then(async () => {
             await catalogDAO
               .connect(participant1)
-              .closeSmartContractProposal(6);
-            // Rank increased to 2
+              .voteOnNewSmartContract(lastPropIndex, true, false);
+            const lastProposal =
+              await catalogDAO.getSmartContractProposalsByIndex(lastPropIndex);
 
-            expect(await catalogDAO.getRank(participant1.address)).to.equal(2);
+            // Vote weigth is 3 for participant1
+            expect(lastProposal.approvals).to.equal(3);
 
-            await catalogDAO
-              .connect(participant1)
-              .proposeNewSmartContract("sc7", false, false);
+            // NOW I PROPOSE TO REMOVE ONE BECAUSE IT"S MALICIOUS!
 
-            await catalogDAO
-              .connect(owner)
-              .voteOnNewSmartContract(7, true, false);
+            const toRemove = await catalogDAO.getAcceptedSCProposalsByIndex(5);
+            expect(toRemove.creator).to.equal(participant1.address);
+
+            await expectRevert(
+              () =>
+                catalogDAO
+                  .connect(participant2)
+                  .proposeContractRemoval("discussionURL", 5, true),
+              "911"
+            ); // Malicious
 
             await mineBlocks(100).then(async () => {
+              lastPropIndex = await catalogDAO.getSmartContractProposalIndex();
               await catalogDAO
-                .connect(participant1)
-                .closeSmartContractProposal(7);
+                .connect(participant2)
+                .closeSmartContractProposal(lastPropIndex);
 
-              await catalogDAO
-                .connect(participant1)
-                .proposeNewSmartContract("sc8", false, false);
+              await grindForRank(
+                catalogDAO,
+                participant2,
+                owner,
+                4,
+                "par2"
+              ).then(async () => {
+                await catalogDAO
+                  .connect(participant2)
+                  .proposeContractRemoval("discussionURL", 5, true);
 
-              await catalogDAO
-                .connect(owner)
-                .voteOnNewSmartContract(8, true, false);
-
-              await mineBlocks(100).then(async () => {
+                // Proposes a new contract that will not pass because the rank is removed
                 await catalogDAO
                   .connect(participant1)
-                  .closeSmartContractProposal(8);
-
-                await catalogDAO
-                  .connect(participant1)
-                  .proposeNewSmartContract("sc9", false, false);
-
+                  .proposeNewSmartContract("sc12", false, false, false, 0);
+                lastPropIndex =
+                  await catalogDAO.getSmartContractProposalIndex();
+                // Even tho the owner votes for it, it will not work because of the remvoval proposal later
                 await catalogDAO
                   .connect(owner)
-                  .voteOnNewSmartContract(9, true, false);
+                  .voteOnNewSmartContract(lastPropIndex, true, false);
+
+                await catalogDAO.connect(owner).voteOnRemoval(1, true);
+                await expectRevert(
+                  () =>
+                    catalogDAO.connect(participant1).voteOnRemoval(1, false),
+                  "916"
+                );
+                // made 7 accepted proposals so far with participant1
+                expect(
+                  await (
+                    await catalogDAO.connect(participant1).getMyProposals()
+                  ).acceptedSCProposals.length
+                ).equal(21);
+
+                let accepted = await catalogDAO.getAllAccepted();
+                expect(accepted.length).to.equal(28);
+                let removed = await catalogDAO.getAllRemoved();
+                expect(removed.length).to.equal(0);
 
                 await mineBlocks(100).then(async () => {
-                  await catalogDAO
-                    .connect(participant1)
-                    .closeSmartContractProposal(9);
+                  const removal1 = await catalogDAO.getRemovalProposalByIndex(
+                    1
+                  );
+                  expect(removal1.approvals).equal(10);
+                  expect(removal1.rejections).equal(0);
 
-                  await catalogDAO
-                    .connect(participant1)
-                    .proposeNewSmartContract("sc10", false, false);
-
-                  await catalogDAO
-                    .connect(owner)
-                    .voteOnNewSmartContract(10, true, false);
-
-                  await mineBlocks(100).then(async () => {
-                    await catalogDAO
-                      .connect(participant1)
-                      .closeSmartContractProposal(10);
-
-                    // FINALLY REACHED RANK3!!
-                    expect(
-                      await catalogDAO.getRank(participant1.address)
-                    ).to.equal(3);
-
+                  expect(
                     await catalogDAO
                       .connect(participant2)
-                      .proposeNewSmartContract("Sc11", false, false);
+                      .closeRemovalProposal(1)
+                  ).to.emit(daoStaking, "Penalize");
 
-                    await catalogDAO
-                      .connect(participant1)
-                      .voteOnNewSmartContract(11, true, false);
-                    const eleven =
-                      await catalogDAO.getSmartContractProposalsByIndex(11);
+                  // This will close but not pass
+                  await catalogDAO
+                    .connect(participant1)
+                    .closeSmartContractProposal(lastPropIndex);
 
-                    // Vote weigth is 3 for participant1
-                    expect(eleven.approvals).to.equal(3);
+                  accepted = await catalogDAO.getAllAccepted();
+                  expect(accepted.length).to.equal(28);
+                  removed = await catalogDAO.getAllRemoved();
+                  expect(removed.length).to.equal(1);
 
-                    // NOW I PROPOSE TO REMOVE ONE BECAUSE IT"S MALICIOUS!
+                  // The proposals remain 7
+                  expect(
+                    await (
+                      await catalogDAO.connect(participant1).getMyProposals()
+                    ).acceptedSCProposals.length
+                  ).equal(21);
 
-                    const toRemove =
-                      await catalogDAO.getAcceptedSCProposalsByIndex(5);
-                    expect(toRemove.creator).to.equal(participant1.address);
-                    await catalogDAO
-                      .connect(participant2)
-                      .proposeContractRemoval("discussionURL", 5, true); // Malicious
+                  // Participant 1 lost his rank
+                  expect(
+                    await catalogDAO.getRank(participant1.address)
+                  ).to.equal(0);
 
-                    // Proposes a new contract that will not pass because the rank is removed
-                    await catalogDAO
-                      .connect(participant1)
-                      .proposeNewSmartContract("sc12", false, false);
-
-                    // Even tho the owner votes for it, it will not work because of the remvoval proposal
-                    await catalogDAO
-                      .connect(owner)
-                      .voteOnNewSmartContract(12, true, false);
-
-                    await catalogDAO.connect(owner).voteOnRemoval(1, true);
-                    await expectRevert(
-                      () =>
-                        catalogDAO
-                          .connect(participant1)
-                          .voteOnRemoval(1, false),
-                      "916"
-                    );
-                    // made 7 accepted proposals so far with participant1
-                    expect(
-                      await (
-                        await catalogDAO.connect(participant1).getMyProposals()
-                      ).acceptedSCProposals.length
-                    ).equal(7);
-
-                    let accepted = await catalogDAO.getAllAccepted();
-                    expect(accepted.length).to.equal(10);
-                    let removed = await catalogDAO.getAllRemoved();
-                    expect(removed.length).to.equal(0);
-                    await mineBlocks(100).then(async () => {
-                      const removal1 =
-                        await catalogDAO.getRemovalProposalByIndex(1);
-                      expect(removal1.approvals).equal(10);
-                      expect(removal1.rejections).equal(0);
-
-                      expect(
-                        await catalogDAO
-                          .connect(participant2)
-                          .closeRemovalProposal(1)
-                      ).to.emit(daoStaking, "Penalize");
-
-                      // This will not close
-                      await catalogDAO
-                        .connect(participant1)
-                        .closeSmartContractProposal(12);
-
-                      accepted = await catalogDAO.getAllAccepted();
-                      expect(accepted.length).to.equal(10);
-                      removed = await catalogDAO.getAllRemoved();
-                      expect(removed.length).to.equal(1);
-
-                      // The proposals remain 7
-                      expect(
-                        await (
-                          await catalogDAO
-                            .connect(participant1)
-                            .getMyProposals()
-                        ).acceptedSCProposals.length
-                      ).equal(7);
-
-                      // Participant 1 lost his rank
-                      expect(
-                        await catalogDAO.getRank(participant1.address)
-                      ).to.equal(0);
-
-                      // participant1 lost his stake
-                      expect(
-                        await daoStaking.isStaking(participant1.address)
-                      ).to.equal(false);
-                    });
-                  });
+                  // participant1 lost his stake
+                  expect(
+                    await daoStaking.isStaking(participant1.address)
+                  ).to.equal(false);
                 });
               });
             });
@@ -449,7 +426,7 @@ describe("CatalogDao", function () {
       await catalogDAO.connect(participant1).closeRankProposal(1);
       await catalogDAO
         .connect(participant1)
-        .proposeNewSmartContract("sc1", false, false);
+        .proposeNewSmartContract("sc1", false, false, false, 0);
 
       await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
 
@@ -483,7 +460,7 @@ describe("CatalogDao", function () {
       await catalogDAO.connect(participant1).closeRankProposal(1);
       await catalogDAO
         .connect(participant1)
-        .proposeNewSmartContract("sc1", true, true); // has frontend and has Fees
+        .proposeNewSmartContract("sc1", true, true, false, 0); // has frontend and has Fees
 
       // participant 1 is suspicious
 
@@ -491,9 +468,7 @@ describe("CatalogDao", function () {
 
       await mineBlocks(100).then(async () => {
         expect(await daoStaking.getAvailableReward()).to.equal(0);
-        expect(await daoStaking.getTotalStaked()).to.equal(
-          ethers.utils.parseEther("150")
-        );
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
 
         expect(await catalogDAO.closeSuspiciousProposal(1)).to.emit(
           daoStaking,
@@ -505,11 +480,9 @@ describe("CatalogDao", function () {
         expect(scProposal.rejections).to.equal(10);
         expect(scProposal.suspicious).to.equal(10);
 
-        expect(await daoStaking.getTotalStaked()).to.equal(
-          ethers.utils.parseEther("120")
-        );
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("120"));
         expect(await daoStaking.getAvailableReward()).to.equal(
-          ethers.utils.parseEther("30")
+          parseEther("30")
         );
 
         // Suspicious contract was closed by owner and the stake was taken??
@@ -519,6 +492,223 @@ describe("CatalogDao", function () {
           false
         );
       });
+    });
+  });
+
+  it("Update,updateOf, reward claiming,staking balances, ", async () => {
+    const { catalogDAO, owner, participant1, daoStaking, ric } = await setUp(
+      true
+    );
+
+    await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+    await catalogDAO.connect(owner).voteOnNewRank(1, true);
+
+    await mineBlocks(100).then(async () => {
+      await catalogDAO.connect(participant1).closeRankProposal(1);
+      await catalogDAO
+        .connect(participant1)
+        .proposeNewSmartContract("sc1", true, true, false, 0); // has frontend and has Fees
+
+      // participant 1 is suspicious
+
+      await catalogDAO.voteOnNewSmartContract(1, true, false);
+      let lastI = await catalogDAO.getSmartContractProposalIndex();
+      await mineBlocks(100).then(async () => {
+        await catalogDAO
+          .connect(participant1)
+          .closeSmartContractProposal(lastI);
+
+        const lastAcc = await catalogDAO.getAcceptedSmartContractIndex();
+        // Claims the reward for the proposal
+
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+        expect(await daoStaking.getAvailableReward()).equal(parseEther("0"));
+        expect(await ric.balanceOf(participant1.address)).to.equal(
+          parseEther("70")
+        );
+
+        await ric.approve(daoStaking.address, parseEther("10000"));
+        await daoStaking.depositRewards(parseEther("10000"));
+        await daoStaking.connect(participant1).claimReward(lastAcc);
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("650"));
+        await daoStaking.getStaker(participant1.address);
+
+        expect(
+          await (
+            await daoStaking.getStaker(participant1.address)
+          ).stakeAmount
+        ).to.equal(parseEther("530"));
+
+        expect(await ric.balanceOf(participant1.address)).to.equal(
+          parseEther("570")
+        );
+
+        // NOW AN UPDATE PROPOSAL COMES
+        // Faild, need to update a removed contract
+        await expectRevert(
+          () =>
+            catalogDAO
+              .connect(participant1)
+              .proposeNewSmartContract("sc1 update", true, true, true, lastAcc),
+          "952"
+        );
+
+        // DO THE CONTRACT REMOVAL
+
+        await catalogDAO
+          .connect(participant1)
+          .proposeContractRemoval("discussionUrl", lastAcc, false);
+
+        await catalogDAO.voteOnRemoval(1, true);
+
+        await mineBlocks(100).then(async () => {
+          await catalogDAO.connect(participant1).closeRemovalProposal(1);
+          await catalogDAO
+            .connect(participant1)
+            .proposeNewSmartContract("sc1 update", true, true, true, lastAcc);
+
+          lastI = await catalogDAO.getSmartContractProposalIndex();
+          await catalogDAO.voteOnNewSmartContract(lastI, true, false);
+
+          await mineBlocks(100).then(async () => {
+            await catalogDAO
+              .connect(participant1)
+              .closeSmartContractProposal(lastI);
+
+            // Now for the rewards, the update is NOT getting rewards!
+            const lastAcc2 = await catalogDAO.getAcceptedSmartContractIndex();
+            await expectRevert(
+              () => daoStaking.connect(participant1).claimReward(lastAcc2),
+              "953"
+            );
+          });
+        });
+      });
+    });
+  });
+  it("testing => banning, should not use this much", async () => {
+    const { catalogDAO, owner, participant1, daoStaking, ric } = await setUp(
+      true
+    );
+
+    expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+
+    await expectRevert(
+      () => catalogDAO.connect(participant1).ban(owner.address),
+      "937"
+    );
+
+    await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+    await catalogDAO.connect(owner).voteOnNewRank(1, true);
+    await ric.approve(daoStaking.address, parseEther("100000"));
+    await daoStaking.depositRewards(parseEther("100000"));
+    await mineBlocks(100).then(async () => {
+      await catalogDAO.connect(participant1).closeRankProposal(1);
+
+      await grindForRank(catalogDAO, participant1, owner, 20, "asf").then(
+        async () => {
+          await daoStaking.connect(participant1).claimReward(1);
+          await daoStaking.connect(participant1).claimReward(2);
+          await daoStaking.connect(participant1).claimReward(3);
+          await daoStaking.connect(participant1).claimReward(4);
+          await daoStaking.connect(participant1).claimReward(5);
+          await daoStaking.connect(participant1).claimReward(6);
+          await daoStaking.connect(participant1).claimReward(7);
+          await daoStaking.connect(participant1).claimReward(8);
+          await daoStaking.connect(participant1).claimReward(9);
+          await daoStaking.connect(participant1).claimReward(10);
+
+          expect(await ric.balanceOf(participant1.address)).to.equal(
+            parseEther("1570")
+          );
+
+          expect(
+            await (
+              await daoStaking.getStaker(participant1.address)
+            ).stakeAmount
+          ).to.equal(parseEther("1530"));
+
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("1650")
+          );
+          expect(await daoStaking.getAvailableReward()).to.equal(
+            parseEther("97000")
+          );
+
+          expect(await catalogDAO.ban(participant1.address));
+          // // NOW THE PARTICIPANT 1 is fucked, I will never do this
+          expect(
+            await (
+              await daoStaking.getStaker(participant1.address)
+            ).stakeAmount
+          ).to.equal(parseEther("0"));
+
+          expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
+
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("120"));
+
+          expect(await daoStaking.getAvailableReward()).to.equal(
+            parseEther("98530")
+          );
+        }
+      );
+    });
+  });
+
+  it("retire and join again", async () => {
+    const { catalogDAO, owner, participant1, daoStaking, ric } = await setUp(
+      true
+    );
+    await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+    await catalogDAO.connect(owner).voteOnNewRank(1, true);
+    await ric.approve(daoStaking.address, parseEther("100000"));
+    await daoStaking.depositRewards(parseEther("100000"));
+    await mineBlocks(100).then(async () => {
+      await catalogDAO.connect(participant1).closeRankProposal(1);
+      await grindForRank(catalogDAO, participant1, owner, 5, "asf").then(
+        async () => {
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+          await daoStaking.connect(participant1).claimReward(1);
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("300"));
+
+          await daoStaking.connect(participant1).claimReward(2);
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("450"));
+
+          await daoStaking.connect(participant1).claimReward(3);
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("600"));
+
+          await daoStaking.connect(participant1).claimReward(4);
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("750"));
+
+          await daoStaking.connect(participant1).claimReward(5);
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("900"));
+
+          // NOW THE PARTICIPANT RETIRES AFTER SOME TIME
+          expect(await ric.balanceOf(participant1.address)).to.equal(
+            parseEther("820")
+          );
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("900"));
+          await daoStaking.connect(participant1).unStake();
+          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("120"));
+          expect(await ric.balanceOf(participant1.address)).to.equal(
+            parseEther("1600")
+          );
+
+          expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
+
+          await ric
+            .connect(participant1)
+            .approve(daoStaking.address, parseEther("30"));
+          await daoStaking.connect(participant1).stake();
+          await catalogDAO.connect(participant1).proposeNewRank("repoURL");
+          await catalogDAO.connect(owner).voteOnNewRank(2, true);
+
+          await mineBlocks(100).then(async () => {
+            await catalogDAO.connect(participant1).closeRankProposal(2);
+            expect(await catalogDAO.getRank(participant1.address)).to.equal(1);
+          });
+        }
+      );
     });
   });
 });

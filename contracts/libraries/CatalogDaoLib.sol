@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "../DaoStaking.sol";
@@ -20,9 +20,11 @@ struct CatalogState {
     mapping(address => mapping(uint256 => bool)) likedAlready;
     // only one proposal can be active at a time
     mapping(address => bool) hasPendingSmartContractProposal;
+    mapping(address => bool) hasPendingRemovalProposal;
     // If I push all into an array, I can have more easy access for them from the front end
     AcceptedSmartContractProposal[] allAccepted;
     AcceptedSmartContractProposal[] allRemoved;
+    address owner;
 }
 
 struct MyProposals {
@@ -53,9 +55,12 @@ struct SmartContractProposal {
     bool closed;
     bool hasFrontend;
     bool hasFees;
+    bool isUpdate;
+    uint256 updateOf;
 }
 
 struct AcceptedSmartContractProposal {
+    uint256 created;
     string arweaveTxId;
     address creator;
     bool removed;
@@ -63,6 +68,8 @@ struct AcceptedSmartContractProposal {
     bool hasFees;
     uint256 likes;
     uint256 dislikes;
+    bool isUpdate;
+    uint256 updateOf;
 }
 
 struct RemovalProposal {
@@ -78,7 +85,6 @@ struct RemovalProposal {
 
 library CatalogDaoLib {
     // <-- Rank functions start -->
-
     function proposeNewRank(
         CatalogState storage self,
         string calldata _repository
@@ -209,11 +215,18 @@ library CatalogDaoLib {
         CatalogState storage self,
         string calldata _arweaveTxId,
         bool _hasFrontEnd,
-        bool _hasFees
+        bool _hasFees,
+        bool _isUpdate,
+        uint256 _updateOf
     ) external returns (uint256) {
         require(!self.hasPendingSmartContractProposal[msg.sender], "944");
         // The sender must have high enough rank
         require(self.rank[msg.sender] > 0, "911");
+
+        if (_isUpdate) {
+            require(self.acceptedSCProposals[_updateOf].removed, "952");
+        }
+
         self.smartContractProposalIndex += 1;
 
         self.smartContractProposals[
@@ -228,7 +241,9 @@ library CatalogDaoLib {
             closed: false,
             penalized: false,
             hasFrontend: _hasFrontEnd,
-            hasFees: _hasFees
+            hasFees: _hasFees,
+            isUpdate: _isUpdate,
+            updateOf: _updateOf
         });
 
         bytes32 sCHash = smartContractProposalHash(
@@ -370,6 +385,7 @@ library CatalogDaoLib {
                 self.acceptedSCProposals[
                     self.acceptedSCProposalIndex
                 ] = AcceptedSmartContractProposal({
+                    created: block.number,
                     arweaveTxId: self
                         .smartContractProposals[sCIndex]
                         .arweaveTxId,
@@ -380,7 +396,9 @@ library CatalogDaoLib {
                         .hasFrontend,
                     hasFees: self.smartContractProposals[sCIndex].hasFees,
                     likes: 0,
-                    dislikes: 0
+                    dislikes: 0,
+                    isUpdate: self.smartContractProposals[sCIndex].isUpdate,
+                    updateOf: self.smartContractProposals[sCIndex].updateOf
                 });
                 self.myProposals[msg.sender].acceptedSCProposals.push(
                     self.acceptedSCProposalIndex
@@ -400,7 +418,7 @@ library CatalogDaoLib {
                         self
                             .myProposals[msg.sender]
                             .acceptedSCProposals
-                            .length >= 3
+                            .length >= 5
                     ) self.rank[msg.sender] = 2;
                 }
 
@@ -414,7 +432,7 @@ library CatalogDaoLib {
                         self
                             .myProposals[msg.sender]
                             .acceptedSCProposals
-                            .length >= 6
+                            .length >= 20
                     ) {
                         self.rank[msg.sender] = 3;
                     }
@@ -436,7 +454,21 @@ library CatalogDaoLib {
         uint256 _acceptedSCIndex,
         bool _malicious
     ) external returns (uint256) {
+        require(!self.hasPendingRemovalProposal[msg.sender], "944");
         require(self.rank[msg.sender] > 0, "911");
+
+        if (_malicious) {
+            // Only rank 2 can report malicious contracts
+            require(self.rank[msg.sender] > 1, "911");
+        } else {
+            // If it's not malicious, the user can only remove his own contract.
+            require(
+                self.acceptedSCProposals[_acceptedSCIndex].creator ==
+                    msg.sender,
+                "914"
+            );
+        }
+
         self.removalProposalIndex += 1;
         self.removalProposals[self.removalProposalIndex] = RemovalProposal({
             discussionUrl: _discussionUrl,
@@ -457,6 +489,7 @@ library CatalogDaoLib {
         self.voted[remHash] = true;
 
         self.myProposals[msg.sender].removal.push(self.removalProposalIndex);
+        self.hasPendingRemovalProposal[msg.sender] = true;
         return self.removalProposalIndex;
     }
 
@@ -548,7 +581,7 @@ library CatalogDaoLib {
         require(!self.removalProposals[removalIndex].closed, "917");
 
         self.removalProposals[removalIndex].closed = true;
-
+        self.hasPendingSmartContractProposal[msg.sender] = false;
         if (prop.approvals >= 10) {
             if (prop.approvals > prop.rejections) {
                 // If the proposal was accepted, I remove the approved proposal

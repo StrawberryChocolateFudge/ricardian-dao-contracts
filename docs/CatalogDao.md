@@ -24,8 +24,11 @@ Calling this function will extend the stake time of the address.
 
 The creator of the proposal needs to close it.
 
-    function proposeNewSmartContract(string calldata _arweaveTxId,  bool _hasFrontEnd,
-        bool _hasFees)
+    function proposeNewSmartContract(string calldata _arweaveTxId,
+        bool _hasFrontEnd,
+        bool _hasFees,
+        bool isUpdate,
+        uint256 updateOf)
         external
         returns (uint256);
 
@@ -81,6 +84,11 @@ Removal proposals are closed by their creators.
 
 A wallet can express his opinion about an accepted smart contract
 
+    function ban(address _address) external;
+
+Only the deployer can call this function. Used for banning malicious actors manually.
+NOT planning to use this.
+
 ## View funcitons
 
     function getRank(address _address) public view returns (uint8);
@@ -128,12 +136,18 @@ Returns a smart contract proposal's last index. For example, if 10 smart contrac
 You can get all the smart contract proposals using the index.
 
     struct SmartContractProposal {
-        string arweaveTxId; //The contents of the proposal is stored on arweave
-        address creator; // The creator address
-        uint256 createdBlock; // The block when it was created
-        uint256 approvals; //Approval votes
-        uint256 rejections; // rejection votes
-        bool closed; // did the proposal get closed already
+        string arweaveTxId;  // The proposals transaction id
+        address creator;
+        uint256 createdBlock;
+        uint256 approvals;
+        uint256 rejections;
+        uint256 suspicious; // Is this suspicious, seems to be malicious?
+        bool penalized; //Malicious proposal that lost it's stake
+        bool closed;
+        bool hasFrontend; // extra reward for front end
+        bool hasFees;  // extra reward for fees
+        bool isUpdate; // is the proposal an update of a previous one?
+        uint256 updateOf;  // The acceptedSmartContract index of the contract that getting updated
     }
 
 The smart contract proposal object.
@@ -160,6 +174,16 @@ You can fetch the accepted smart contract proposals by index.
         string arweaveTxId;
         address creator;
         bool removed;
+        uint256 created;
+        string arweaveTxId;
+        address creator;
+        bool removed;
+        bool hasFrontend;
+        bool hasFees;
+        uint256 likes;
+        uint256 dislikes;
+        bool isUpdate;
+        uint256 updateOf;
     }
 
 The accepted smart contract proposal object.

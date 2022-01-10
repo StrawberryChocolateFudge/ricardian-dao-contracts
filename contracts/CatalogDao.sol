@@ -37,6 +37,7 @@ contract CatalogDao is SimpleTerms {
         state.pollPeriod = pollPeriod; //302400, Estimate of  how many Harmony blocks are in a week.
 
         daoStaking = _daoStaking;
+        state.owner = msg.sender;
     }
 
     // <-- Rank functions start -->
@@ -205,12 +206,20 @@ contract CatalogDao is SimpleTerms {
     function proposeNewSmartContract(
         string calldata _arweaveTxId,
         bool _hasFrontEnd,
-        bool _hasFees
+        bool _hasFees,
+        bool isUpdate,
+        uint256 updateOf
     ) external checkAcceptance returns (uint256) {
         daoStaking.extendStakeTime(msg.sender);
         emit NewSmartContractProposal(msg.sender, _arweaveTxId);
         return
-            state.proposeNewSmartContract(_arweaveTxId, _hasFrontEnd, _hasFees);
+            state.proposeNewSmartContract(
+                _arweaveTxId,
+                _hasFrontEnd,
+                _hasFees,
+                isUpdate,
+                updateOf
+            );
     }
 
     function getSmartContractProposalIndex() external view returns (uint256) {
@@ -351,5 +360,16 @@ contract CatalogDao is SimpleTerms {
         returns (AcceptedSmartContractProposal[] memory)
     {
         return state.allRemoved;
+    }
+
+    function ban(address _address) external {
+        require(msg.sender == state.owner, "937");
+        daoStaking.penalize(_address);
+        state.rank[_address] = 0;
+    }
+
+    function retire(address _address_) external {
+        require(msg.sender == address(daoStaking), "954");
+        state.rank[_address_] = 0;
     }
 }
