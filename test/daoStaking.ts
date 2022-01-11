@@ -3,6 +3,7 @@ import {
   setUp,
   expectRevert,
   mineBlocks,
+  parseEther,
   // eslint-disable-next-line node/no-missing-import
 } from "./setup";
 import { ethers } from "hardhat";
@@ -107,6 +108,22 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("250")
     );
 
+    expect(
+      await daoStaking
+        .connect(owner)
+        .depositRewards(ethers.utils.parseEther("100"))
+    ).to.emit(daoStaking, "RewardDeposit");
+
+    expect(await daoStaking.getAvailableReward()).to.equal(
+      ethers.utils.parseEther("200")
+    );
+    expect(await ric.balanceOf(owner.address)).to.equal(
+      ethers.utils.parseEther("9999370")
+    );
+    expect(await ric.balanceOf(daoStaking.address)).to.equal(
+      ethers.utils.parseEther("350")
+    );
+
     // I expect claimReward fails here
     await expectRevert(() => daoStaking.connect(owner).claimReward(1), "927");
   });
@@ -138,7 +155,7 @@ describe("daoStaking", async function () {
     await expectRevert(() => daoStaking.penalize(participant1.address), "925");
   });
 
-  it("claims reward", async function () {
+  it("claims reward, unstakes", async function () {
     const {
       catalogDAO,
       owner,
@@ -168,19 +185,19 @@ describe("daoStaking", async function () {
 
       await catalogDAO
         .connect(participant1)
-        .proposeNewSmartContract("arweaveTXId1", false, false); // Has no fees or front end
+        .proposeNewSmartContract("arweaveTXId1", false, false, false, 0); // Has no fees or front end
 
       await catalogDAO
         .connect(participant2)
-        .proposeNewSmartContract("arweaveTXId2", true, false); // has frontend, no fees
+        .proposeNewSmartContract("arweaveTXId2", true, false, false, 0); // has frontend, no fees
 
       await catalogDAO
         .connect(participant3)
-        .proposeNewSmartContract("arweaveTXId3", false, true); // has fees only
+        .proposeNewSmartContract("arweaveTXId3", false, true, false, 0); // has fees only
 
       await catalogDAO
         .connect(participant4)
-        .proposeNewSmartContract("arweaveTXId4", true, true); // has both fees and frontend
+        .proposeNewSmartContract("arweaveTXId4", true, true, false, 0); // has both fees and frontend
 
       await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
       await catalogDAO.connect(owner).voteOnNewSmartContract(2, true, false);
@@ -255,15 +272,14 @@ describe("daoStaking", async function () {
         );
 
         const balanceOfPar1 = await ric.balanceOf(participant1.address);
-        console.log(balanceOfPar1);
+        expect(balanceOfPar1).to.equal(parseEther("70"));
         const balanceOfPar2 = await ric.balanceOf(participant2.address);
-        console.log(balanceOfPar2);
-
+        expect(balanceOfPar2).to.equal(parseEther("70"));
         const balanceOfPar3 = await ric.balanceOf(participant3.address);
-        console.log(balanceOfPar3);
+        expect(balanceOfPar3).to.equal(parseEther("70"));
 
         const balanceOfPar4 = await ric.balanceOf(participant4.address);
-        console.log(balanceOfPar4);
+        expect(balanceOfPar4).to.equal(parseEther("70"));
 
         // takes the reward
         expect(await daoStaking.connect(participant1).claimReward(1)).to.emit(
@@ -300,10 +316,31 @@ describe("daoStaking", async function () {
         const balanceAfterRewardPar4 = await ric.balanceOf(
           participant4.address
         );
-        expect(balanceAfterRewardPar1).equal(ethers.utils.parseEther("370"));
-        expect(balanceAfterRewardPar2).equal(ethers.utils.parseEther("670"));
-        expect(balanceAfterRewardPar3).equal(ethers.utils.parseEther("670"));
-        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("1070"));
+        expect(balanceAfterRewardPar1).equal(ethers.utils.parseEther("220"));
+        expect(balanceAfterRewardPar2).equal(ethers.utils.parseEther("370"));
+        expect(balanceAfterRewardPar3).equal(ethers.utils.parseEther("370"));
+        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("570"));
+
+        expect(
+          await (
+            await daoStaking.getStaker(participant1.address)
+          ).stakeAmount
+        ).to.equal(parseEther("180"));
+        expect(
+          await (
+            await daoStaking.getStaker(participant2.address)
+          ).stakeAmount
+        ).to.equal(parseEther("330"));
+        expect(
+          await (
+            await daoStaking.getStaker(participant3.address)
+          ).stakeAmount
+        ).to.equal(parseEther("330"));
+        expect(
+          await (
+            await daoStaking.getStaker(participant4.address)
+          ).stakeAmount
+        ).to.equal(parseEther("530"));
       });
     });
   });

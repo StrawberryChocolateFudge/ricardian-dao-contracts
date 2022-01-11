@@ -7,10 +7,16 @@ import "./CatalogDao.sol";
 import "./ArweavePS.sol";
 import "./libraries/CatalogDaoLib.sol";
 
-// DAO staking is for sybil resistance.
+// Staking is for sybil resistance.
 // All addresses asking for Rank must be staking to avoid rank request spam.
 // Dao staking also pays out Ric for accepted smart contract proposals.
 // The user must stake 30 tokens
+
+struct Staker {
+    bool isStaking;
+    uint256 stakeDate;
+    uint256 stakeAmount;
+}
 
 contract DaoStaking is Ownable {
     using SafeERC20 for IERC20;
@@ -27,8 +33,10 @@ contract DaoStaking is Ownable {
 
     uint256 private stakingBlocks; // The blocks that need to pass before the staking can be removed.
 
-    mapping(address => bool) private stakers;
-    mapping(address => uint256) private stakeDate;
+    // mapping(address => bool) private stakers;
+    // mapping(address => uint256) private stakeDate;
+    mapping(address => Staker) private stakers;
+    address[] public allStakers;
     mapping(string => bool) private rewardedProposals;
 
     uint8 private lock = 0;
@@ -84,8 +92,8 @@ contract DaoStaking is Ownable {
         view
         returns (uint256)
     {
-        if (stakers[_address_]) {
-            return stakeDate[_address_];
+        if (stakers[_address_].isStaking) {
+            return stakers[_address_].stakeDate;
         } else {
             return 0;
         }
@@ -95,68 +103,89 @@ contract DaoStaking is Ownable {
         catalogDao = _address;
     }
 
+    function setStakingBlocks(uint256 to) external onlyOwner {
+        stakingBlocks = to;
+    }
+
     function stake() external {
+        require(lock == 0, "935");
+        lock = 1;
         // check if the address is staking already.
-        require(!stakers[msg.sender], "922");
+        require(!stakers[msg.sender].isStaking, "922");
 
         // check if the sender has enough balance
         require(_token.balanceOf(msg.sender) > STAKINGREQUIREMENT, "923");
         // record the transfer
-        stakers[msg.sender] = true;
-        stakeDate[msg.sender] = block.number;
+        stakers[msg.sender] = Staker({
+            isStaking: true,
+            stakeDate: block.number,
+            stakeAmount: STAKINGREQUIREMENT
+        });
+        allStakers.push(msg.sender);
+        totalStaked += STAKINGREQUIREMENT;
         // Transfer to this smart contract
         _token.safeTransferFrom(msg.sender, address(this), STAKINGREQUIREMENT);
-        totalStaked += STAKINGREQUIREMENT;
         emit Stake(msg.sender, totalStaked);
+        lock = 0;
     }
 
     function isStaking(address _address) external view returns (bool) {
-        return stakers[_address];
+        return stakers[_address].isStaking;
     }
 
     function unStake() external {
-        require(stakers[msg.sender], "919");
-        require(stakeDate[msg.sender] + stakingBlocks < block.number, "924");
-        stakers[msg.sender] = false;
-
-        _token.safeTransfer(msg.sender, STAKINGREQUIREMENT);
-        totalStaked -= STAKINGREQUIREMENT;
-
+        require(lock == 0, "935");
+        lock = 1;
+        require(stakers[msg.sender].isStaking, "919");
+        require(
+            stakers[msg.sender].stakeDate + stakingBlocks < block.number,
+            "924"
+        );
+        stakers[msg.sender].isStaking = false;
+        totalStaked -= stakers[msg.sender].stakeAmount;
         arweavePS.stoppedStaking(msg.sender);
+        catalogDao.retire(msg.sender);
+        _token.safeTransfer(msg.sender, stakers[msg.sender].stakeAmount);
         emit Unstake(msg.sender, totalStaked);
+        lock = 0;
     }
 
     function extendStakeTime(address forAddress) external {
         require(msg.sender == address(catalogDao), "925");
-        require(stakers[forAddress], "926");
-        stakeDate[forAddress] += block.number;
-        emit ExtendStakeTime(forAddress, stakeDate[forAddress]);
+        require(stakers[forAddress].isStaking, "926");
+        // Assigns the block number only!
+        stakers[forAddress].stakeDate = block.number;
+        emit ExtendStakeTime(forAddress, stakers[forAddress].stakeAmount);
     }
 
     function penalize(address address_) external {
         require(msg.sender == address(catalogDao), "925");
         // The staker lost his balance, the catalogDao decides!
-        stakers[address_] = false;
-        totalStaked -= STAKINGREQUIREMENT;
+        stakers[address_].isStaking = false;
+        totalStaked -= stakers[address_].stakeAmount;
         // It's added to the reward
-        availableReward += STAKINGREQUIREMENT;
+        availableReward += stakers[address_].stakeAmount;
+        stakers[address_].stakeAmount = 0;
         arweavePS.stoppedStaking(address_);
         emit Penalize(address_);
         emit Unstake(msg.sender, totalStaked);
     }
 
     function depositRewards(uint256 amount) external {
+        require(lock == 0, "935");
+        lock = 1;
         //the rewards that can be pulled, are added this way
+        availableReward += amount;
         _token.safeTransferFrom(msg.sender, address(this), amount);
-        availableReward = amount;
         emit RewardDeposit(msg.sender, amount, availableReward);
+        lock = 0;
     }
 
     function claimReward(uint256 forProposal) external {
         //If you are staking, you can claim rewards for accepted smart contracts
         require(lock == 0, "935");
         lock = 1;
-        require(stakers[msg.sender], "919");
+        require(stakers[msg.sender].isStaking, "919");
 
         // Use the catalogDAO to get the rank of the user
         uint8 rank = catalogDao.getRank(msg.sender);
@@ -164,7 +193,7 @@ contract DaoStaking is Ownable {
 
         AcceptedSmartContractProposal memory proposal = catalogDao
             .getAcceptedSCProposalsByIndex(forProposal);
-
+        require(!proposal.isUpdate, "953");
         uint256 reward = getActualReward(
             proposal.hasFrontend,
             proposal.hasFees
@@ -177,12 +206,15 @@ contract DaoStaking is Ownable {
         require(!rewardedProposals[proposal.arweaveTxId], "931");
 
         rewardedProposals[proposal.arweaveTxId] = true;
-
-        //and transfer the reward
-
         availableReward -= reward;
 
-        _token.safeTransfer(msg.sender, reward);
+        uint256 rewardHalf = reward / 2;
+        totalStaked += rewardHalf;
+        stakers[msg.sender].stakeAmount += rewardHalf;
+
+        //and transfer the reward
+        _token.safeTransfer(msg.sender, rewardHalf);
+
         emit ClaimReward(msg.sender, forProposal, availableReward);
         lock = 0;
     }
@@ -201,5 +233,17 @@ contract DaoStaking is Ownable {
         } else {
             return FEATUREREWARD;
         }
+    }
+
+    function getStaker(address _address_)
+        external
+        view
+        returns (Staker memory)
+    {
+        return stakers[_address_];
+    }
+
+    function getStakingBlocks() external view returns (uint256) {
+        return stakingBlocks;
     }
 }
