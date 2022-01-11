@@ -79,3 +79,11 @@
 949: Wei amount is zero
 
 950: Maximum purchase amount is exceeded
+
+951: Can't purchase twice from the same Rate
+
+952: Updated contract is not removed
+
+953: You don't get payed for updated proposals
+
+954: Only daoStaking can call this
