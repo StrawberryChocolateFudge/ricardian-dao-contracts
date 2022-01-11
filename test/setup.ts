@@ -1,7 +1,8 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers, network } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
-import { DaoStaking, Ric } from "../typechain";
+import { CatalogDao, DaoStaking, Ric } from "../typechain";
+export const parseEther = (val: string): any => ethers.utils.parseEther(val);
 
 export async function setUp(withStake: boolean): Promise<any> {
   const [
@@ -213,6 +214,7 @@ export async function expectRevert(
   }
 
   if (!throws) {
+    console.log("Didn't throw");
     throw new Error(`ErrorCode ${errString}`);
   }
   if (!err.includes(errString)) {
@@ -234,6 +236,33 @@ export async function mineBlocks(blockNumber: number) {
     await network.provider.request({
       method: "evm_mine",
       params: [],
+    });
+  }
+}
+
+export async function grindForRank(
+  catalogDAO: CatalogDao,
+  participant: SignerWithAddress,
+  owner: SignerWithAddress,
+  grindfor: number,
+  scID: string
+) {
+  for (let i = 0; i < grindfor; i++) {
+    const tx = await catalogDAO
+      .connect(participant)
+      .proposeNewSmartContract(scID + i, false, false, false, 0);
+    const lastId = await catalogDAO.getSmartContractProposalIndex();
+
+    await tx.wait().then(async () => {
+      await catalogDAO
+        .connect(owner)
+        .voteOnNewSmartContract(lastId, true, false);
+
+      await mineBlocks(100).then(async () => {
+        await catalogDAO
+          .connect(participant)
+          .closeSmartContractProposal(lastId);
+      });
     });
   }
 }
