@@ -46,7 +46,6 @@ contract RicVault {
         require(lock == 0, "Locked");
         lock = 1;
         require(ric.balanceOf(msg.sender) >= _amount_, "934");
-        ric.safeTransferFrom(msg.sender, address(this), _amount_);
         lockIndex[msg.sender] += 1;
         inVault[msg.sender][lockIndex[msg.sender]] = LockedTokens({
             owner: msg.sender,
@@ -56,6 +55,7 @@ contract RicVault {
             released: false
         });
         totalLocked += _amount_;
+        ric.safeTransferFrom(msg.sender, address(this), _amount_);
         emit LockedFunds(msg.sender, _period_, _amount_);
         lock = 0;
         return inVault[msg.sender][lockIndex[msg.sender]];
@@ -70,8 +70,6 @@ contract RicVault {
         lock = 1;
         require(msg.sender == address(feeDao), "940");
         require(ric.balanceOf(_owner_) >= _amount_, "934");
-        // Transfer the allowance from the owner to this smart contract
-        ric.safeTransferFrom(_owner_, address(this), _amount_);
         lockIndex[_owner_] += 1;
         inVault[_owner_][lockIndex[_owner_]] = LockedTokens({
             owner: _owner_,
@@ -81,6 +79,7 @@ contract RicVault {
             released: false
         });
         totalLocked += _amount_;
+        ric.safeTransferFrom(_owner_, address(this), _amount_);
         lock = 0;
         emit LockedFunds(_owner_, _period_, _amount_);
         return inVault[_owner_][lockIndex[_owner_]];
@@ -98,8 +97,8 @@ contract RicVault {
         );
         require(!inVault[msg.sender][_index_].released, "943");
         inVault[msg.sender][_index_].released = true;
-        ric.safeTransfer(msg.sender, inVault[msg.sender][_index_].lockedAmount);
         totalLocked -= inVault[msg.sender][_index_].lockedAmount;
+        ric.safeTransfer(msg.sender, inVault[msg.sender][_index_].lockedAmount);
         lock = 0;
         emit ReleasedFunds(
             msg.sender,
