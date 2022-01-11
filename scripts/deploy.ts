@@ -23,6 +23,9 @@ async function main() {
 
   const FEEDAOPOLLPERIOD = 10;
   const CATALOGPOLLPERIOD = 10;
+
+  const DAOSTAKINGPERIOD = 100; // FOR TEsts the staking period is only 10 blocks for now
+
   // TODO: Test deployment script
   await deploymentScript({
     RICTOTALSUPPLY,
@@ -33,6 +36,7 @@ async function main() {
     RICLOCKINTERVAL,
     FEEDAOPOLLPERIOD,
     CATALOGPOLLPERIOD,
+    DAOSTAKINGPERIOD,
   });
 }
 
@@ -45,6 +49,7 @@ type DeploymentArg = {
   RICLOCKINTERVAL: number;
   FEEDAOPOLLPERIOD: number;
   CATALOGPOLLPERIOD: number;
+  DAOSTAKINGPERIOD: number;
 };
 
 // Export for testing
@@ -78,7 +83,7 @@ export async function deploymentScript(arg: DeploymentArg) {
   const DaoStaking = await DAOStaking.deploy(
     ric.address,
     arweaveps.address,
-    100 // The stake is locked for only 100 blocks for testing purposess
+    arg.DAOSTAKINGPERIOD // The stake is locked for only 100 blocks for testing purposess
   );
   const daoStaking = await DaoStaking.deployed();
   await arweaveps.setStakingLib(daoStaking.address);
@@ -157,7 +162,6 @@ export async function deploymentScript(arg: DeploymentArg) {
     );
   }
   // 20 % Ecosystem / Liquidity / 30 RIC Grants / wallet for making proposals / Airdrops
-  // TODO: Transfered to a third wallet.
 }
 
 // We recommend this pattern to be able to use async/await everywhere
