@@ -23,7 +23,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  * behavior.
  */
 
-contract Ricsale is Context, ReentrancyGuard {
+contract RicSale is Context, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -37,6 +37,10 @@ contract Ricsale is Context, ReentrancyGuard {
     uint256 private _weiRaised;
 
     uint256 private tokensSold;
+
+    // An address can only make 1 purchase per rate.
+    // This tracks if an address purchased tokens at a rate already or not
+    mapping(address => mapping(uint256 => bool)) private purchased;
 
     /**
      * Event for token purchase logging
@@ -72,7 +76,7 @@ contract Ricsale is Context, ReentrancyGuard {
      * buyTokens directly when purchasing tokens from a contract.
      */
     receive() external payable {
-        buyTokens(_msgSender());
+        buyTokens();
     }
 
     /**
@@ -100,25 +104,30 @@ contract Ricsale is Context, ReentrancyGuard {
      * @dev low level token purchase ***DO NOT OVERRIDE***
      * This function has a non-reentrancy guard, so it shouldn't be called by
      * another `nonReentrant` function.
-     * @param beneficiary Recipient of the token purchase
      */
-    function buyTokens(address beneficiary) public payable nonReentrant {
+    function buyTokens() public payable nonReentrant {
         uint256 weiAmount = msg.value;
-        _preValidatePurchase(beneficiary, weiAmount);
+        uint256 currentRate = getCurrentRate();
 
+        _preValidatePurchase(
+            msg.sender,
+            weiAmount,
+            purchased[msg.sender][currentRate]
+        );
+        purchased[msg.sender][currentRate] = true;
         // calculate token amount to be created
-        uint256 tokens = _getTokenAmount(weiAmount);
+        uint256 tokens = _getTokenAmount(currentRate, weiAmount);
 
         // update state
         _weiRaised = _weiRaised.add(weiAmount);
 
-        _processPurchase(beneficiary, tokens);
-        emit TokensPurchased(_msgSender(), beneficiary, weiAmount, tokens);
+        _processPurchase(msg.sender, tokens);
+        emit TokensPurchased(_msgSender(), msg.sender, weiAmount, tokens);
 
-        _updatePurchasingState(beneficiary, weiAmount);
+        _updatePurchasingState(msg.sender, weiAmount);
 
         _forwardFunds();
-        _postValidatePurchase(beneficiary, weiAmount);
+        _postValidatePurchase(msg.sender, weiAmount);
     }
 
     /**
@@ -128,13 +137,16 @@ contract Ricsale is Context, ReentrancyGuard {
      * @param beneficiary Address performing the token purchase
      * @param weiAmount Value in wei involved in the purchase
      */
-    function _preValidatePurchase(address beneficiary, uint256 weiAmount)
-        internal
-        pure
-    {
+    function _preValidatePurchase(
+        address beneficiary,
+        uint256 weiAmount,
+        bool _purchased_
+    ) internal pure {
         require(beneficiary != address(0), "948");
         require(weiAmount != 0, "949");
         require(weiAmount < 100000e18, "950"); // Maximum prurchase amount per purchase
+
+        require(!_purchased_, "951");
     }
 
     /**
@@ -247,12 +259,11 @@ contract Ricsale is Context, ReentrancyGuard {
      * @param weiAmount Value in wei to be converted into tokens
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
-    function _getTokenAmount(uint256 weiAmount)
+    function _getTokenAmount(uint256 currentRate, uint256 weiAmount)
         internal
-        view
+        pure
         returns (uint256)
     {
-        uint256 currentRate = getCurrentRate();
         return currentRate.mul(weiAmount);
     }
 
