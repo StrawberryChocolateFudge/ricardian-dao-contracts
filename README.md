@@ -22,11 +22,11 @@ You can find the Api in the /docs folder.
 - Rank 1 are addresses with accepted rank proposals, they can propose new smart contracts
 - An address that submits 5 smart contracts is elevated to rank 2.
 - After submitting 20 smart contrats, the vote weight is elevated to 3.
-- The stake grows with the rank accepted smart contracts can be used to claim rewards!
+- The stake grows with the rank because accepted smart contracts can be used to claim rewards!
 - Winning proposals are deployable in Ricardian Fabric from the catalog.
 - Allows developers to **work for the DAO**.
 - Allows **punishing malicious proposals**.
-- **Uses a ricardian contract** to define the conditions to pass the proposal review review.
+- **Uses a ricardian contract** to define the conditions to pass the proposal review.
 
 #### DaoStaking
 
