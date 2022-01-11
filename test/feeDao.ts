@@ -1,7 +1,6 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
-import { expectRevert, mineBlocks, setUp } from "./setup";
+import { expectRevert, mineBlocks, parseEther, setUp } from "./setup";
 
 describe("feeDao", () => {
   it("proposes new tokens", async function () {
@@ -28,7 +27,7 @@ describe("feeDao", () => {
     expect(JSON.stringify(proposals)).to.equal("[[]]");
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      ethers.utils.parseEther("70")
+      parseEther("70")
     );
     // the participant 1 has not enough balance to propose a token
     await expectRevert(
@@ -53,7 +52,7 @@ describe("feeDao", () => {
     expect(await feedao.votedAlready(0, owner.address)).to.equal(true);
     expect(await feedao.votedAlready(0, participant1.address)).to.equal(false);
     // I drop tokens to participant1 so he can vote
-    await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
+    await ric.transfer(participant1.address, parseEther("1000"));
 
     await feedao
       .connect(participant1)
@@ -83,8 +82,8 @@ describe("feeDao", () => {
         "932"
       );
 
-      await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
-      await ric.transfer(participant2.address, ethers.utils.parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("1000"));
+      await ric.transfer(participant2.address, parseEther("1000"));
 
       expect(await feedao.connect(participant1).voteOnToken(0, true)).to.emit(
         feedao,
@@ -148,8 +147,8 @@ describe("feeDao", () => {
         "932"
       );
 
-      await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
-      await ric.transfer(participant2.address, ethers.utils.parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("1000"));
+      await ric.transfer(participant2.address, parseEther("1000"));
 
       expect(await feedao.connect(participant1).voteOnToken(0, false)).to.emit(
         feedao,
@@ -195,10 +194,10 @@ describe("feeDao", () => {
       await catalogDAO.connect(participant3).closeRankProposal(3);
       await catalogDAO.connect(participant4).closeRankProposal(4);
 
-      await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
-      await ric.transfer(participant2.address, ethers.utils.parseEther("1000"));
-      await ric.transfer(participant3.address, ethers.utils.parseEther("1000"));
-      await ric.transfer(participant4.address, ethers.utils.parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("1000"));
+      await ric.transfer(participant2.address, parseEther("1000"));
+      await ric.transfer(participant3.address, parseEther("1000"));
+      await ric.transfer(participant4.address, parseEther("1000"));
 
       await feedao.proposeNewToken(ric.address, "pickle rick!", "TOken name");
       // VOTED IN
@@ -222,94 +221,100 @@ describe("feeDao", () => {
         "VoteOnToken"
       );
 
-      // VOTED DOWN
-      await feedao.proposeNewToken(ric.address, "pickle rick1!", "TOken name");
-      expect(await feedao.connect(participant1).voteOnToken(1, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant2).voteOnToken(1, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant3).voteOnToken(1, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant4).voteOnToken(1, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      // A TIE, SO VOTED NO
-      await feedao.proposeNewToken(ric.address, "pickle rick2!", "TOken name");
-
-      expect(await feedao.connect(participant1).voteOnToken(2, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant2).voteOnToken(2, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant3).voteOnToken(2, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant4).voteOnToken(2, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      // VOTED IN
-      await feedao.proposeNewToken(ric.address, "pickle rick3!", "TOken name");
-      expect(await feedao.connect(participant1).voteOnToken(3, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant2).voteOnToken(3, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant3).voteOnToken(3, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      expect(await feedao.connect(participant4).voteOnToken(3, false)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      await mineBlocks(10).then(async () => {
+      await mineBlocks(100).then(async () => {
         expect(await feedao.closeTokenProposal(0)).to.emit(
           feedao,
           "CloseProposal"
         );
-        expect(await feedao.closeTokenProposal(1)).to.emit(
-          feedao,
-          "CloseProposal"
+        // VOTED DOWN
+        await feedao.proposeNewToken(
+          ric.address,
+          "pickle rick1!",
+          "TOken name"
         );
-        expect(await feedao.closeTokenProposal(2)).to.emit(
-          feedao,
-          "CloseProposal"
-        );
-        expect(await feedao.closeTokenProposal(3)).to.emit(
-          feedao,
-          "CloseProposal"
-        );
+        expect(
+          await feedao.connect(participant1).voteOnToken(1, false)
+        ).to.emit(feedao, "VoteOnToken");
 
-        const tokens = await feedao.getTokens();
-        // 2 tokens got voted in
-        expect(tokens.length).equal(2);
+        expect(
+          await feedao.connect(participant2).voteOnToken(1, false)
+        ).to.emit(feedao, "VoteOnToken");
+
+        expect(
+          await feedao.connect(participant3).voteOnToken(1, false)
+        ).to.emit(feedao, "VoteOnToken");
+
+        expect(
+          await feedao.connect(participant4).voteOnToken(1, false)
+        ).to.emit(feedao, "VoteOnToken");
+
+        await mineBlocks(100).then(async () => {
+          expect(await feedao.closeTokenProposal(1)).to.emit(
+            feedao,
+            "CloseProposal"
+          );
+          // A TIE, SO VOTED NO
+          await feedao.proposeNewToken(
+            ric.address,
+            "pickle rick2!",
+            "TOken name"
+          );
+
+          expect(
+            await feedao.connect(participant1).voteOnToken(2, true)
+          ).to.emit(feedao, "VoteOnToken");
+
+          expect(
+            await feedao.connect(participant2).voteOnToken(2, true)
+          ).to.emit(feedao, "VoteOnToken");
+
+          expect(
+            await feedao.connect(participant3).voteOnToken(2, false)
+          ).to.emit(feedao, "VoteOnToken");
+
+          expect(
+            await feedao.connect(participant4).voteOnToken(2, false)
+          ).to.emit(feedao, "VoteOnToken");
+
+          await mineBlocks(100).then(async () => {
+            expect(await feedao.closeTokenProposal(2)).to.emit(
+              feedao,
+              "CloseProposal"
+            );
+            // VOTED IN
+            await feedao.proposeNewToken(
+              ric.address,
+              "pickle rick3!",
+              "TOken name"
+            );
+            expect(
+              await feedao.connect(participant1).voteOnToken(3, true)
+            ).to.emit(feedao, "VoteOnToken");
+
+            expect(
+              await feedao.connect(participant2).voteOnToken(3, true)
+            ).to.emit(feedao, "VoteOnToken");
+
+            expect(
+              await feedao.connect(participant3).voteOnToken(3, true)
+            ).to.emit(feedao, "VoteOnToken");
+
+            expect(
+              await feedao.connect(participant4).voteOnToken(3, false)
+            ).to.emit(feedao, "VoteOnToken");
+
+            await mineBlocks(10).then(async () => {
+              expect(await feedao.closeTokenProposal(3)).to.emit(
+                feedao,
+                "CloseProposal"
+              );
+
+              const tokens = await feedao.getTokens();
+              // 2 tokens got voted in
+              expect(tokens.length).equal(2);
+            });
+          });
+        });
       });
     });
   });
@@ -341,8 +346,8 @@ describe("feeDao", () => {
         "TOken name"
       );
 
-      await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
-      await ric.transfer(participant2.address, ethers.utils.parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("1000"));
+      await ric.transfer(participant2.address, parseEther("1000"));
 
       expect(await feedao.connect(participant1).voteOnToken(0, true)).to.emit(
         feedao,
@@ -367,16 +372,10 @@ describe("feeDao", () => {
 
         // this should be 0 because the feedao has 0 balance
         expect(
-          await feedao.calculateWithdraw(
-            tokens[0].token,
-            ethers.utils.parseEther("100")
-          )
-        ).to.equal(ethers.utils.parseEther("0"));
+          await feedao.calculateWithdraw(tokens[0].token, parseEther("100"))
+        ).to.equal(parseEther("0"));
         // Now I transfer it balance
-        await feetoken1.transfer(
-          feedao.address,
-          ethers.utils.parseEther("10000")
-        );
+        await feetoken1.transfer(feedao.address, parseEther("10000"));
 
         // If the participant uses all his balance, it's 1.07
         expect(
@@ -384,12 +383,11 @@ describe("feeDao", () => {
             tokens[0].token,
             await ric.balanceOf(participant1.address)
           )
-        ).to.equal(ethers.utils.parseEther("1.07"));
+        ).to.equal(parseEther("1.07"));
 
         // // Ricvault lockFor should throw because of allowance
         await expectRevert(
-          () =>
-            feedao.withdrawOne(tokens[0].token, ethers.utils.parseEther("100")),
+          () => feedao.withdrawOne(tokens[0].token, parseEther("100")),
           "exceeds allowance"
         );
         // Approving spend
@@ -408,16 +406,18 @@ describe("feeDao", () => {
         ).to.emit(feedao, "WithdrawToken");
         // Participant1 got the feetoken
         expect(await feetoken1.balanceOf(participant1.address)).to.equal(
-          ethers.utils.parseEther("1.07")
+          parseEther("1.07")
+        );
+
+        expect(await feedao.viewSpentBalanceOf(tokens[0].token)).to.equal(
+          parseEther("1.07")
         );
         // Ric balance is zero because the transfer
         expect(await ric.balanceOf(participant1.address)).to.equal(
-          ethers.utils.parseEther("0")
+          parseEther("0")
         );
         // The total locked in the vault is 1070 now, the previous balance of the participant
-        expect(await ricvault.getTotalLocked()).to.equal(
-          ethers.utils.parseEther("1070")
-        );
+        expect(await ricvault.getTotalLocked()).to.equal(parseEther("1070"));
         const lockIndex = await ricvault.getLockIndex(participant1.address);
         expect(lockIndex).to.equal(1);
 
@@ -426,9 +426,7 @@ describe("feeDao", () => {
           lockIndex
         );
         // Just making sure the vault has the balance
-        expect(vaultContent.lockedAmount).to.equal(
-          ethers.utils.parseEther("1070")
-        );
+        expect(vaultContent.lockedAmount).to.equal(parseEther("1070"));
       });
     });
   });
@@ -452,8 +450,8 @@ describe("feeDao", () => {
 
     await catalogDAO.connect(owner).voteOnNewRank(1, true);
     await catalogDAO.connect(owner).voteOnNewRank(2, true);
-    await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
-    await ric.transfer(participant2.address, ethers.utils.parseEther("1000"));
+    await ric.transfer(participant1.address, parseEther("1000"));
+    await ric.transfer(participant2.address, parseEther("1000"));
 
     await mineBlocks(100).then(async () => {
       await catalogDAO.connect(participant1).closeRankProposal(1);
@@ -474,166 +472,201 @@ describe("feeDao", () => {
         "VoteOnToken"
       );
 
-      await feedao.proposeNewToken(
-        feetoken2.address,
-        "2discussion here",
-        "2token name"
-      );
-
-      expect(await feedao.connect(participant1).voteOnToken(1, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-      expect(await feedao.connect(participant2).voteOnToken(1, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      await feedao.proposeNewToken(
-        feetoken3.address,
-        "3discussion here",
-        "3token name"
-      );
-      expect(await feedao.connect(participant1).voteOnToken(2, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-      expect(await feedao.connect(participant2).voteOnToken(2, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
-      await feedao.proposeNewToken(
-        feetoken4.address,
-        "4discussion here",
-        "4token name"
-      );
-
-      expect(await feedao.connect(participant1).voteOnToken(3, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-      expect(await feedao.connect(participant2).voteOnToken(3, true)).to.emit(
-        feedao,
-        "VoteOnToken"
-      );
-
       await mineBlocks(10).then(async () => {
         expect(await feedao.closeTokenProposal(0)).to.emit(
           feedao,
           "CloseProposal"
         );
-        expect(await feedao.closeTokenProposal(1)).to.emit(
+        await feedao.proposeNewToken(
+          feetoken2.address,
+          "2discussion here",
+          "2token name"
+        );
+
+        expect(await feedao.connect(participant1).voteOnToken(1, true)).to.emit(
           feedao,
-          "CloseProposal"
+          "VoteOnToken"
         );
-        expect(await feedao.closeTokenProposal(2)).to.emit(
+        expect(await feedao.connect(participant2).voteOnToken(1, true)).to.emit(
           feedao,
-          "CloseProposal"
-        );
-        expect(await feedao.closeTokenProposal(3)).to.emit(
-          feedao,
-          "CloseProposal"
-        );
-        const tokens = await feedao.getTokens();
-        expect(tokens.length).equal(4);
-        // so I got 4 tokens voted in,
-        // I transfer some of it to the feedao
-        await feetoken1.transfer(
-          feedao.address,
-          ethers.utils.parseEther("100")
-        );
-        await feetoken2.transfer(
-          feedao.address,
-          ethers.utils.parseEther("100")
-        );
-        await feetoken3.transfer(
-          feedao.address,
-          ethers.utils.parseEther("100")
-        );
-        await feetoken4.transfer(
-          feedao.address,
-          ethers.utils.parseEther("100")
+          "VoteOnToken"
         );
 
-        expect(await feetoken1.balanceOf(feedao.address)).to.equal(
-          ethers.utils.parseEther("100")
-        );
-        expect(await feetoken2.balanceOf(feedao.address)).to.equal(
-          ethers.utils.parseEther("100")
-        );
-        expect(await feetoken3.balanceOf(feedao.address)).to.equal(
-          ethers.utils.parseEther("100")
-        );
-        expect(await feetoken4.balanceOf(feedao.address)).to.equal(
-          ethers.utils.parseEther("100")
-        );
-
-        // Now I withdraw from 3 tokens
-        // Putting all the balance will result in
-        expect(
-          await feedao.calculateWithdraw(
-            feetoken2.address,
-            await ric.balanceOf(participant1.address)
-          )
-        ).to.equal(ethers.utils.parseEther("0.0107"));
-
-        await expectRevert(
-          () =>
-            feedao
-              .connect(participant1)
-              .withdrawThree(
-                feetoken1.address,
-                feetoken2.address,
-                feetoken3.address,
-                ethers.utils.parseEther("100000")
-              ),
-          "934"
-        );
-        // Approving spend
-        await ric
-          .connect(participant1)
-          .approve(ricvault.address, await ric.balanceOf(participant1.address));
-
-        await feedao
-          .connect(participant1)
-          .withdrawThree(
-            feetoken1.address,
-            feetoken2.address,
-            feetoken3.address,
-            await ric.balanceOf(participant1.address)
+        await mineBlocks(10).then(async () => {
+          expect(await feedao.closeTokenProposal(1)).to.emit(
+            feedao,
+            "CloseProposal"
           );
+          await feedao.proposeNewToken(
+            feetoken3.address,
+            "3discussion here",
+            "3token name"
+          );
+          expect(
+            await feedao.connect(participant1).voteOnToken(2, true)
+          ).to.emit(feedao, "VoteOnToken");
+          expect(
+            await feedao.connect(participant2).voteOnToken(2, true)
+          ).to.emit(feedao, "VoteOnToken");
 
-        // Checking the balances
-        expect(await ric.balanceOf(participant1.address)).to.equal(
-          ethers.utils.parseEther("0")
-        );
+          await mineBlocks(10).then(async () => {
+            expect(await feedao.closeTokenProposal(2)).to.emit(
+              feedao,
+              "CloseProposal"
+            );
+            await feedao.proposeNewToken(
+              feetoken4.address,
+              "4discussion here",
+              "4token name"
+            );
 
-        expect(await feetoken1.balanceOf(participant1.address)).to.equal(
-          ethers.utils.parseEther("0.0107")
-        );
+            expect(
+              await feedao.connect(participant1).voteOnToken(3, true)
+            ).to.emit(feedao, "VoteOnToken");
+            expect(
+              await feedao.connect(participant2).voteOnToken(3, true)
+            ).to.emit(feedao, "VoteOnToken");
 
-        expect(await feetoken2.balanceOf(participant1.address)).to.equal(
-          ethers.utils.parseEther("0.0107")
-        );
+            await mineBlocks(10).then(async () => {
+              expect(await feedao.closeTokenProposal(3)).to.emit(
+                feedao,
+                "CloseProposal"
+              );
+              const tokens = await feedao.getTokens();
+              expect(tokens.length).equal(4);
+              // so I got 4 tokens voted in,
+              // I transfer some of it to the feedao
+              await feetoken1.transfer(feedao.address, parseEther("100"));
+              await feetoken2.transfer(feedao.address, parseEther("100"));
+              await feetoken3.transfer(feedao.address, parseEther("100"));
+              await feetoken4.transfer(feedao.address, parseEther("100"));
 
-        expect(await feetoken3.balanceOf(participant1.address)).to.equal(
-          ethers.utils.parseEther("0.0107")
-        );
+              expect(await feetoken1.balanceOf(feedao.address)).to.equal(
+                parseEther("100")
+              );
+              expect(await feetoken2.balanceOf(feedao.address)).to.equal(
+                parseEther("100")
+              );
+              expect(await feetoken3.balanceOf(feedao.address)).to.equal(
+                parseEther("100")
+              );
+              expect(await feetoken4.balanceOf(feedao.address)).to.equal(
+                parseEther("100")
+              );
 
-        const lockIndex = await ricvault.getLockIndex(participant1.address);
-        expect(lockIndex).to.equal(1);
+              // Now I withdraw from 3 tokens
+              // Putting all the balance will result in
+              expect(
+                await feedao.calculateWithdraw(
+                  feetoken2.address,
+                  await ric.balanceOf(participant1.address)
+                )
+              ).to.equal(parseEther("0.0107"));
 
-        const vaultContent = await ricvault.getVaultContent(
-          participant1.address,
-          lockIndex
-        );
-        // Just making sure the vault has the balance
-        expect(vaultContent.lockedAmount).to.equal(
-          ethers.utils.parseEther("1070")
-        );
+              await expectRevert(
+                () =>
+                  feedao
+                    .connect(participant1)
+                    .withdrawThree(
+                      feetoken1.address,
+                      feetoken2.address,
+                      feetoken3.address,
+                      parseEther("100000")
+                    ),
+                "934"
+              );
+              // Approving spend
+              await ric
+                .connect(participant1)
+                .approve(
+                  ricvault.address,
+                  await ric.balanceOf(participant1.address)
+                );
+
+              await feedao
+                .connect(participant1)
+                .withdrawThree(
+                  feetoken1.address,
+                  feetoken2.address,
+                  feetoken3.address,
+                  await ric.balanceOf(participant1.address)
+                );
+
+              // Checking the balances
+              expect(await ric.balanceOf(participant1.address)).to.equal(
+                parseEther("0")
+              );
+
+              expect(await feetoken1.balanceOf(participant1.address)).to.equal(
+                parseEther("0.0107")
+              );
+
+              expect(await feetoken2.balanceOf(participant1.address)).to.equal(
+                parseEther("0.0107")
+              );
+
+              expect(await feetoken3.balanceOf(participant1.address)).to.equal(
+                parseEther("0.0107")
+              );
+
+              const lockIndex = await ricvault.getLockIndex(
+                participant1.address
+              );
+              expect(lockIndex).to.equal(1);
+
+              const vaultContent = await ricvault.getVaultContent(
+                participant1.address,
+                lockIndex
+              );
+              // Just making sure the vault has the balance
+              expect(vaultContent.lockedAmount).to.equal(parseEther("1070"));
+            });
+          });
+        });
       });
     });
+  });
+
+  it("withdraw ETH rewards", async function () {
+    const { owner, participant1, participant2, feedao, ric, ricvault } =
+      await setUp(true);
+    await ric.transfer(participant1.address, parseEther("1000"));
+    await ric.transfer(participant2.address, parseEther("1000"));
+
+    expect(await feedao.getTotalBalance()).to.equal(parseEther("0"));
+    expect(await feedao.getCurrentBalance()).to.equal(parseEther("0"));
+    await expect(
+      await owner.sendTransaction({
+        to: feedao.address,
+        value: parseEther("100"),
+      })
+    )
+      .to.emit(feedao, "Received")
+      .withArgs(owner.address, parseEther("100"));
+
+    expect(await feedao.getTotalBalance()).to.equal(parseEther("100"));
+    expect(await feedao.getCurrentBalance()).to.equal(parseEther("100"));
+
+    const withdrawAmount = parseEther("1000");
+
+    expect(await feedao.calculateETHWithdraw(withdrawAmount)).to.equal(
+      parseEther("0.01")
+    );
+    await ric.approve(ricvault.address, withdrawAmount);
+    expect(await feedao.withdrawETH(withdrawAmount))
+      .to.emit(feedao, "WithdrawEth")
+      .withArgs(owner.address, parseEther("0.01"), withdrawAmount);
+    expect(await feedao.getTotalBalance()).to.equal(parseEther("100"));
+    expect(await feedao.getCurrentBalance()).to.equal(parseEther("99.99"));
+    expect(await ricvault.getLockIndex(owner.address)).to.equal(1);
+    const locked = await ricvault.getVaultContent(owner.address, 1);
+    console.log(locked);
+    expect(locked.lockedAmount).to.equal(withdrawAmount);
+
+    await expectRevert(
+      () => feedao.connect(participant1).withdrawETH(parseEther("1000000000")),
+      "934"
+    );
   });
 
   it("Expresses opinion on an accepted token", async function () {
@@ -652,8 +685,8 @@ describe("feeDao", () => {
 
     await catalogDAO.connect(owner).voteOnNewRank(1, true);
     await catalogDAO.connect(owner).voteOnNewRank(2, true);
-    await ric.transfer(participant1.address, ethers.utils.parseEther("1000"));
-    await ric.transfer(participant2.address, ethers.utils.parseEther("1000"));
+    await ric.transfer(participant1.address, parseEther("1000"));
+    await ric.transfer(participant2.address, parseEther("1000"));
 
     await mineBlocks(100).then(async () => {
       await catalogDAO.connect(participant1).closeRankProposal(1);
@@ -695,5 +728,14 @@ describe("feeDao", () => {
         expect(tokens[0].dislikes).to.equal(1);
       });
     });
+  });
+
+  it("only owner can change poll period", async () => {
+    const { feedao, participant1 } = await setUp(true);
+
+    await expectRevert(
+      () => feedao.connect(participant1).setPollPeriods(1, 2, 3),
+      "937"
+    );
   });
 });

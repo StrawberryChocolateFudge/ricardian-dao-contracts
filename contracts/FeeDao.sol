@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./DaoStaking.sol";
 import "./RicVault.sol";
 
@@ -29,8 +29,16 @@ struct Token {
 
 uint256 constant requiredBalance = 1000e18;
 uint256 constant precision = 1000000000; //The precision of reward calculation, 9 decimals
-uint256 constant singleWithdrawLockPeriod = 100000; //blocks
-uint256 constant trippleWithdrawLockPeriod = 300000; // blocks
+
+enum Balance {
+    current,
+    total
+}
+enum Periods {
+    singleLock,
+    trippleLock,
+    pollPeriod
+}
 
 contract FeeDao {
     using SafeERC20 for IERC20;
@@ -39,19 +47,23 @@ contract FeeDao {
     CatalogDao private catalogDao;
     RicVault private ricVault;
     IERC20 private ric;
-    uint256 private pollPeriod;
 
     TokenProposal[] private proposals;
     mapping(bytes32 => bool) private voted;
 
     mapping(address => TokenProposal[]) private myProposals;
+    mapping(address => bool) private hasPendingProposal;
 
     Token[] private tokens;
-    // AddressAdded is used like a .contains array method for the tokens .
+    // addressAdded is used like a .contains array method for the tokens .
     // will return true if the address has been added
     mapping(address => bool) private addressAdded;
 
     mapping(bytes32 => bool) private likers; // collection of addresses who already liked or disliked a Token
+
+    mapping(bytes32 => uint256) private balance;
+
+    mapping(Periods => uint256) private periods;
 
     address private owner;
 
@@ -82,6 +94,9 @@ contract FeeDao {
         uint256 thirdReward
     );
 
+    event Received(address to, uint256 value);
+    event WithdrawEth(address to, uint256 reward, uint256 ricAmount);
+
     constructor(
         IERC20 ric_,
         DaoStaking _staking_,
@@ -90,9 +105,13 @@ contract FeeDao {
     ) {
         ric = ric_;
         staking = _staking_;
-        pollPeriod = pollPeriod_;
+        periods[Periods.pollPeriod] = pollPeriod_;
+        periods[Periods.singleLock] = 1314900; //blocks are around 1 month with 2 second finality
+        periods[Periods.trippleLock] = 3944700; // blocks are around 3 months with a 2 second finality
         owner = msg.sender;
         catalogDao = _catalogDao_;
+        balance[hashBalance(Balance.current)] = 0;
+        balance[hashBalance(Balance.total)] = 0;
     }
 
     function setRicVault(RicVault _ricVault_) external {
@@ -100,16 +119,29 @@ contract FeeDao {
         ricVault = _ricVault_;
     }
 
+    function setPollPeriods(
+        uint256 singleLock,
+        uint256 trippleLock,
+        uint256 pollPeriod
+    ) external {
+        require(msg.sender == owner, "937");
+
+        periods[Periods.singleLock] = singleLock;
+        periods[Periods.trippleLock] = trippleLock;
+        periods[Periods.pollPeriod] = pollPeriod;
+    }
+
     function proposeNewToken(
         IERC20 _token,
         string memory _discussionURL,
         string memory _name_
     ) external returns (uint256) {
+        require(address(_token) != address(0), "948");
         require(staking.isStaking(msg.sender), "919");
         require(catalogDao.getRank(msg.sender) > 0, "911");
         // The proposer must have the required balance
         require(ric.balanceOf(msg.sender) > requiredBalance, "932");
-
+        require(!hasPendingProposal[msg.sender], "944");
         TokenProposal memory proposal = TokenProposal({
             name: _name_,
             creator: msg.sender,
@@ -120,7 +152,7 @@ contract FeeDao {
             created: block.number,
             closed: false
         });
-
+        hasPendingProposal[msg.sender] = true;
         proposals.push(proposal);
         bytes32 _hash_ = hashTokenProposal(proposal, msg.sender);
         voted[_hash_] = true;
@@ -167,7 +199,11 @@ contract FeeDao {
         require(!voted[_hash_], "933");
 
         // check if the voting period is over
-        require(proposals[index].created + pollPeriod > block.number, "913");
+        require(
+            proposals[index].created + periods[Periods.pollPeriod] >
+                block.number,
+            "913"
+        );
 
         if (accepted) {
             proposals[index].approvals += 1;
@@ -191,10 +227,15 @@ contract FeeDao {
         // Everybody closes their own proposals
         require(proposals[index].creator == msg.sender, "914");
         // The poll period must be over
-        require(proposals[index].created + pollPeriod < block.number, "915");
+        require(
+            proposals[index].created + periods[Periods.pollPeriod] <
+                block.number,
+            "915"
+        );
         require(!proposals[index].closed, "917");
 
         proposals[index].closed = true;
+        hasPendingProposal[msg.sender] = false;
         // If there are more approvals than rejections
         if (proposals[index].approvals > proposals[index].rejections) {
             tokens.push(
@@ -256,6 +297,49 @@ contract FeeDao {
         payment = calculatedValue / precision;
     }
 
+    function calculateETHWithdraw(uint256 amount)
+        public
+        view
+        returns (uint256 payment)
+    {
+        // How much is the amount compared to the total supply?
+        uint256 withPadding = amount * precision;
+        uint256 dividedByTotal = (withPadding / ric.totalSupply());
+
+        uint256 calculatedValue = dividedByTotal *
+            balance[hashBalance(Balance.current)];
+        payment = calculatedValue / precision;
+    }
+
+    function withdrawETH(uint256 amount) external {
+        require(!lock, "925");
+        lock = true;
+        require(ric.balanceOf(msg.sender) >= amount, "934");
+        uint256 _reward = calculateETHWithdraw(amount);
+        require(_reward < balance[hashBalance(Balance.current)], "927");
+        balance[hashBalance(Balance.current)] -= _reward;
+        // Lock the ric in the vault
+        ricVault.lockFor(msg.sender, periods[Periods.singleLock], amount);
+        // reduce the balance and send it
+        Address.sendValue(payable(msg.sender), _reward);
+        lock = false;
+        emit WithdrawEth(msg.sender, _reward, amount);
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+        balance[hashBalance(Balance.current)] += msg.value;
+        balance[hashBalance(Balance.total)] += msg.value;
+    }
+
+    function getCurrentBalance() external view returns (uint256) {
+        return balance[hashBalance(Balance.current)];
+    }
+
+    function getTotalBalance() external view returns (uint256) {
+        return balance[hashBalance(Balance.total)];
+    }
+
     function withdrawOne(IERC20 from, uint256 amount) external {
         require(!lock, "935");
         lock = true;
@@ -263,9 +347,10 @@ contract FeeDao {
         require(ric.balanceOf(msg.sender) >= amount, "934");
         uint256 _reward = calculateWithdraw(from, amount);
         require(_reward < from.balanceOf(address(this)), "927");
-
+        // Register a spend
+        balance[hashBalance(address(from))] += _reward;
         // Lock the ric in the vault
-        ricVault.lockFor(msg.sender, singleWithdrawLockPeriod, amount);
+        ricVault.lockFor(msg.sender, periods[Periods.trippleLock], amount);
 
         // transfer the requiested tokens
         from.safeTransfer(msg.sender, _reward);
@@ -294,8 +379,11 @@ contract FeeDao {
         require(secondReward < second.balanceOf(address(this)), "927");
         uint256 thirdReward = calculateWithdraw(third, amount);
         require(thirdReward < third.balanceOf(address(this)), "927");
+        balance[hashBalance(address(first))] += firstReward;
+        balance[hashBalance(address(second))] += secondReward;
+        balance[hashBalance(address(third))] += thirdReward;
 
-        ricVault.lockFor(msg.sender, trippleWithdrawLockPeriod, amount);
+        ricVault.lockFor(msg.sender, periods[Periods.trippleLock], amount);
 
         // and transfer him the requested tokens
         first.safeTransfer(msg.sender, firstReward);
@@ -312,5 +400,23 @@ contract FeeDao {
             thirdReward
         );
         lock = false;
+    }
+
+    function viewSpentBalanceOf(IERC20 _token_)
+        external
+        view
+        returns (uint256)
+    {
+        return balance[hashBalance(address(_token_))];
+    }
+
+    function hashBalance(Balance _balance_) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_balance_));
+    }
+
+    // hashBalance with the address parameter is used for IERC20 address spent balance tracking
+    // It was done like this because of the limit on variable declarations in the contract
+    function hashBalance(address _balance_) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_balance_));
     }
 }
