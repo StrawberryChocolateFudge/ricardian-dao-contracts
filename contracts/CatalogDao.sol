@@ -55,6 +55,7 @@ contract CatalogDao is SimpleTerms {
         checkAcceptance
         returns (uint256)
     {
+        require(daoStaking.isStaking(msg.sender), "919");
         daoStaking.extendStakeTime(msg.sender);
         emit NewRankProposal(msg.sender, _repository);
         return state.proposeNewRank(_repository);
@@ -89,12 +90,14 @@ contract CatalogDao is SimpleTerms {
         checkAcceptance
         returns (bool)
     {
+        require(daoStaking.isStaking(msg.sender), "919");
         daoStaking.extendStakeTime(msg.sender);
         emit RankVote(msg.sender, rankIndex, accepted);
         return state.voteOnNewRank(rankIndex, accepted);
     }
 
     function closeRankProposal(uint256 rankIndex) external returns (bool) {
+        require(daoStaking.isStaking(msg.sender), "919");
         daoStaking.extendStakeTime(msg.sender);
         emit ClosingRankVote(msg.sender, rankIndex);
         return state.closeRankProposal(rankIndex);
@@ -220,6 +223,8 @@ contract CatalogDao is SimpleTerms {
         bool isUpdate,
         uint256 updateOf
     ) external checkAcceptance returns (uint256) {
+        require(daoStaking.isStaking(msg.sender), "919");
+
         daoStaking.extendStakeTime(msg.sender);
         emit NewSmartContractProposal(msg.sender, _arweaveTxId);
         return
@@ -257,6 +262,8 @@ contract CatalogDao is SimpleTerms {
         bool accepted,
         bool suspicious
     ) external checkAcceptance returns (bool) {
+        require(daoStaking.isStaking(msg.sender), "919");
+
         daoStaking.extendStakeTime(msg.sender);
         emit VoteOnNewSmartContract(msg.sender, sCIndex, accepted);
         return state.voteOnNewSC(sCIndex, accepted, suspicious);
@@ -295,6 +302,8 @@ contract CatalogDao is SimpleTerms {
         uint256 _acceptedSCIndex,
         bool malicious
     ) external checkAcceptance returns (uint256) {
+        require(daoStaking.isStaking(msg.sender), "919");
+
         daoStaking.extendStakeTime(msg.sender);
         emit NewRemovalProposal(
             msg.sender,
@@ -323,6 +332,8 @@ contract CatalogDao is SimpleTerms {
         checkAcceptance
         returns (bool)
     {
+        require(daoStaking.isStaking(msg.sender), "919");
+
         daoStaking.extendStakeTime(msg.sender);
         emit VoteOnRemoval(msg.sender, removalIndex, accepted);
         return state.voteOnRemoval(removalIndex, accepted);
@@ -332,6 +343,8 @@ contract CatalogDao is SimpleTerms {
         external
         returns (bool)
     {
+        require(daoStaking.isStaking(msg.sender), "919");
+
         daoStaking.extendStakeTime(msg.sender);
         emit CloseRemovalProposal(msg.sender, removalIndex);
         return state.closeRemovalProposal(daoStaking, removalIndex);
