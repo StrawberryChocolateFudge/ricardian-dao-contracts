@@ -45,7 +45,7 @@ The staking requirement is 30 Ric.
     function unStake() external;
 
 The staker can claim his Ric stake and exit the dao.
-This will reduce the rank to 0 and cancels Arweave rewards.
+This will cancel Arweave rewards.
 
     function extendStakeTime(address forAddress) external;
 

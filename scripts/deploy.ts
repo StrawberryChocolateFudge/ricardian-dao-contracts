@@ -26,7 +26,6 @@ async function main() {
 
   const DAOSTAKINGPERIOD = 100; // FOR TEsts the staking period is only 10 blocks for now
 
-  // TODO: Test deployment script
   await deploymentScript({
     RICTOTALSUPPLY,
     DAOSTAKINGALLOCATION,

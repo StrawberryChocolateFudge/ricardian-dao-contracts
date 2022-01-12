@@ -1,12 +1,12 @@
 import { expect } from "chai";
 import { BigNumber } from "ethers";
-// eslint-disable-next-line node/no-missing-import
 import {
   setUp,
   expectRevert,
   mineBlocks,
   grindForRank,
   parseEther,
+  // eslint-disable-next-line node/no-missing-import
 } from "./setup";
 
 describe("CatalogDao", function () {
@@ -701,21 +701,12 @@ describe("CatalogDao", function () {
               parseEther("1600")
             );
 
-            expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
+            expect(await catalogDAO.getRank(participant1.address)).to.equal(1);
 
             await ric
               .connect(participant1)
               .approve(daoStaking.address, parseEther("30"));
             await daoStaking.connect(participant1).stake();
-            await catalogDAO.connect(participant1).proposeNewRank("repoURL");
-            await catalogDAO.connect(owner).voteOnNewRank(2, true);
-
-            await mineBlocks(100).then(async () => {
-              await catalogDAO.connect(participant1).closeRankProposal(2);
-              expect(await catalogDAO.getRank(participant1.address)).to.equal(
-                1
-              );
-            });
           });
         }
       );

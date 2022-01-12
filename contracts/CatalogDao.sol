@@ -382,6 +382,6 @@ contract CatalogDao is SimpleTerms {
 
     function retire(address _address_) external {
         require(msg.sender == address(daoStaking), "954");
-        state.rank[_address_] = 0;
+        state.rank[_address_] = 1;
     }
 }
