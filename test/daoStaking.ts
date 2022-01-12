@@ -82,7 +82,7 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("0")
     );
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("9999570")
+      ethers.utils.parseEther("99999570")
     );
     expect(await ric.balanceOf(daoStaking.address)).to.equal(
       ethers.utils.parseEther("150")
@@ -102,7 +102,7 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("100")
     );
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("9999470")
+      ethers.utils.parseEther("99999470")
     );
     expect(await ric.balanceOf(daoStaking.address)).to.equal(
       ethers.utils.parseEther("250")
@@ -118,7 +118,7 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("200")
     );
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("9999370")
+      ethers.utils.parseEther("99999370")
     );
     expect(await ric.balanceOf(daoStaking.address)).to.equal(
       ethers.utils.parseEther("350")

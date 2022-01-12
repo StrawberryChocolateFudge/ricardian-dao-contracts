@@ -26,7 +26,7 @@ describe("Ric token", async function () {
     } = await setUp(false);
 
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("10000000")
+      ethers.utils.parseEther("100000000")
     );
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
@@ -64,7 +64,7 @@ describe("Ric token", async function () {
     );
 
     expect(await ric.totalSupply()).to.equal(
-      ethers.utils.parseEther("9999990")
+      ethers.utils.parseEther("99999990")
     );
   });
 
@@ -87,7 +87,7 @@ describe("Ric token", async function () {
       daoStaking: DaoStaking;
     } = await setUp(false);
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("10000000")
+      ethers.utils.parseEther("100000000")
     );
 
     expect(await ric.balanceOf(participant1.address)).to.equal(

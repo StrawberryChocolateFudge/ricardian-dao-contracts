@@ -383,7 +383,7 @@ describe("feeDao", () => {
             tokens[0].token,
             await ric.balanceOf(participant1.address)
           )
-        ).to.equal(parseEther("1.07"));
+        ).to.equal(parseEther("0.107"));
 
         // // Ricvault lockFor should throw because of allowance
         await expectRevert(
@@ -406,11 +406,11 @@ describe("feeDao", () => {
         ).to.emit(feedao, "WithdrawToken");
         // Participant1 got the feetoken
         expect(await feetoken1.balanceOf(participant1.address)).to.equal(
-          parseEther("1.07")
+          parseEther("0.107")
         );
 
         expect(await feedao.viewSpentBalanceOf(tokens[0].token)).to.equal(
-          parseEther("1.07")
+          parseEther("0.107")
         );
         // Ric balance is zero because the transfer
         expect(await ric.balanceOf(participant1.address)).to.equal(
@@ -561,7 +561,7 @@ describe("feeDao", () => {
                   feetoken2.address,
                   await ric.balanceOf(participant1.address)
                 )
-              ).to.equal(parseEther("0.0107"));
+              ).to.equal(parseEther("0.00107"));
 
               await expectRevert(
                 () =>
@@ -598,15 +598,15 @@ describe("feeDao", () => {
               );
 
               expect(await feetoken1.balanceOf(participant1.address)).to.equal(
-                parseEther("0.0107")
+                parseEther("0.00107")
               );
 
               expect(await feetoken2.balanceOf(participant1.address)).to.equal(
-                parseEther("0.0107")
+                parseEther("0.00107")
               );
 
               expect(await feetoken3.balanceOf(participant1.address)).to.equal(
-                parseEther("0.0107")
+                parseEther("0.00107")
               );
 
               const lockIndex = await ricvault.getLockIndex(
@@ -650,17 +650,16 @@ describe("feeDao", () => {
     const withdrawAmount = parseEther("1000");
 
     expect(await feedao.calculateETHWithdraw(withdrawAmount)).to.equal(
-      parseEther("0.01")
+      parseEther("0.001")
     );
     await ric.approve(ricvault.address, withdrawAmount);
     expect(await feedao.withdrawETH(withdrawAmount))
       .to.emit(feedao, "WithdrawEth")
-      .withArgs(owner.address, parseEther("0.01"), withdrawAmount);
+      .withArgs(owner.address, parseEther("0.001"), withdrawAmount);
     expect(await feedao.getTotalBalance()).to.equal(parseEther("100"));
-    expect(await feedao.getCurrentBalance()).to.equal(parseEther("99.99"));
+    expect(await feedao.getCurrentBalance()).to.equal(parseEther("99.999"));
     expect(await ricvault.getLockIndex(owner.address)).to.equal(1);
     const locked = await ricvault.getVaultContent(owner.address, 1);
-    console.log(locked);
     expect(locked.lockedAmount).to.equal(withdrawAmount);
 
     await expectRevert(

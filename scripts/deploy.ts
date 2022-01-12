@@ -68,7 +68,6 @@ export async function deploymentScript(arg: DeploymentArg) {
 
   const RICSale = await ethers.getContractFactory("Ricsale");
 
-  // TODO: THIS IS MY LIVE HARTMONY ADDRESS. DO NOT USE FOR TESTING!!
   const RicSale = await RICSale.deploy(
     "0xdf16399e6f10bbc1c07c88c6c70116182fa2e118",
     ric.address
@@ -162,6 +161,8 @@ export async function deploymentScript(arg: DeploymentArg) {
     );
   }
   // 20 % Ecosystem / Liquidity / 30 RIC Grants / wallet for making proposals / Airdrops
+
+  // Manual lockups!
 }
 
 // We recommend this pattern to be able to use async/await everywhere
