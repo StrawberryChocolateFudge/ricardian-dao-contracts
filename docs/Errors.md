@@ -87,3 +87,5 @@
 953: You don't get payed for updated proposals
 
 954: Only daoStaking can call this
+
+951: Tokensale is over
