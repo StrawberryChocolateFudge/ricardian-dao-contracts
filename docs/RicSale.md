@@ -6,7 +6,7 @@ The Ric token is sold from the app via this crowdsale contract. This contract is
 
     constructor(address payable _wallet_, IERC20 _token_);
 
-The deployer passes in wallet of the address where he collects the fees and the token for sale.
+The deployer passes in wallet of the address where he collects the payments and the token for sale.
 
 # External functions
 
