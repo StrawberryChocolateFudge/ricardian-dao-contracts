@@ -12,6 +12,20 @@ export async function setUp(withStake: boolean): Promise<any> {
     participant3,
     participant4,
     participant5,
+    buyer1,
+    buyer2,
+    buyer3,
+    buyer4,
+    buyer5,
+    buyer6,
+    buyer7,
+    buyer8,
+    buyer9,
+    buyer10,
+    buyer11,
+    buyer12,
+    buyer13,
+    buyer14,
   ] = await ethers.getSigners();
 
   // A simple terms for signing up, which means accepting the terms
@@ -21,8 +35,14 @@ export async function setUp(withStake: boolean): Promise<any> {
 
   const RicToken = await ethers.getContractFactory("Ric");
 
-  const ricToken = await RicToken.deploy(ethers.utils.parseEther("10000000"));
+  const ricToken = await RicToken.deploy(ethers.utils.parseEther("100000000"));
+
   const ric = await ricToken.deployed();
+
+  const RICSale = await ethers.getContractFactory("RicSale");
+
+  const RicSale = await RICSale.deploy(owner.address, ric.address);
+  const ricsale = await RicSale.deployed();
 
   const ArweavePS = await ethers.getContractFactory("ArweavePS");
   const arweavePS = await ArweavePS.deploy();
@@ -134,6 +154,21 @@ export async function setUp(withStake: boolean): Promise<any> {
     feetoken4,
     ricvault,
     signup,
+    ricsale,
+    buyer1,
+    buyer2,
+    buyer3,
+    buyer4,
+    buyer5,
+    buyer6,
+    buyer7,
+    buyer8,
+    buyer9,
+    buyer10,
+    buyer11,
+    buyer12,
+    buyer13,
+    buyer14,
   };
 }
 
@@ -214,8 +249,7 @@ export async function expectRevert(
   }
 
   if (!throws) {
-    console.log("Didn't throw");
-    throw new Error(`ErrorCode ${errString}`);
+    throw new Error(`Didn't throw ${errString}`);
   }
   if (!err.includes(errString)) {
     console.warn(err);
