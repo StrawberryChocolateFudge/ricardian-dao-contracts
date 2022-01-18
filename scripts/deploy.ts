@@ -17,7 +17,7 @@ async function main() {
   const DAOSTAKINGALLOCATION = "20000000"; // 20.000.000
   const MEMBERSHIPALLOCATION = "40000000"; // 40.000.000
 
-  const RICKVAULTALLOCATION = "20000000"; // TOTAL RIC ALLOCATION 20.000.000
+  const RICKVAULTALLOCATION = "40000000"; // TOTAL RIC ALLOCATION 20.000.000
   const RICTOLOCK = "2000000"; // 2.000.000 Lock this amount for RICLOCKINTERVAL
   const RICLOCKINTERVAL = 7000000; // 7.000.000
 
@@ -65,10 +65,10 @@ export async function deploymentScript(arg: DeploymentArg) {
 
   const ric = await ricToken.deployed();
 
-  const RICSale = await ethers.getContractFactory("Ricsale");
-
+  const RICSale = await ethers.getContractFactory("RicSale");
+  //TODO: THESE ARE TESTNET ADDRESSES< DO NOT SEND ANYTHING HERE!!
   const RicSale = await RICSale.deploy(
-    "0xdf16399e6f10bbc1c07c88c6c70116182fa2e118",
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     ric.address
   );
   const ricsale = await RicSale.deployed();
@@ -145,6 +145,14 @@ export async function deploymentScript(arg: DeploymentArg) {
     ethers.utils.parseEther(arg.MEMBERSHIPALLOCATION)
   );
 
+  console.log(
+    await ric.allowance(
+      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      ricsale.address
+    )
+  );
+  console.log(await ricsale.remainingTokens());
+
   // 20 % goes to the Ric vault,
   await ric.approve(
     ricvault.address,
@@ -153,7 +161,7 @@ export async function deploymentScript(arg: DeploymentArg) {
 
   // Locked with increasing lock up periods for RICTOLOCK amount of tokens.
   // 1. RICTOLOCK is 2% of the total supply
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 16; i++) {
     await ricvault.lockFunds(
       arg.RICLOCKINTERVAL * i,
       ethers.utils.parseEther(arg.RICTOLOCK)
