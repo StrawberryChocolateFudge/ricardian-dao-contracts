@@ -100,6 +100,11 @@ contract RicSale is Context, ReentrancyGuard {
         return _weiRaised;
     }
 
+    function purchasedAlready(address _address) public view returns (bool) {
+        uint256 currentRate = getCurrentRate(tokensSold);
+        return purchased[_address][currentRate];
+    }
+
     /**
      * @dev low level token purchase ***DO NOT OVERRIDE***
      * This function has a non-reentrancy guard, so it shouldn't be called by

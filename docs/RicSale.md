@@ -48,3 +48,7 @@ The sale starts at rate 100 and after every 20.000.000 tokens sold, it's increme
 The final rate for the last tokens is 1.
 
 This will be deployed on Harmony so the sale price starts at 0.01 ONE (around 0.003 USD) and increments till 1 ONE ( around 0.3 USD)
+
+    function purchasedAlready(address _address) public view returns (bool);
+
+Returns if the address has made a purchase at the current price rate.

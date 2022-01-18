@@ -77,6 +77,10 @@ describe("RicSale", async function () {
     );
     overrides = { value: parseEther("1000") };
     await ricsale.connect(buyer1).buyTokens(overrides);
+
+    expect(
+      await ricsale.connect(buyer1).purchasedAlready(buyer1.address)
+    ).to.equal(true);
     overrides = { value: parseEther("1000") };
     await ricsale.connect(buyer2).buyTokens(overrides);
     overrides = { value: parseEther("1000") };
