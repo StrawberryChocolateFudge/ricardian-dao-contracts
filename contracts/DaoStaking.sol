@@ -114,7 +114,7 @@ contract DaoStaking is Ownable {
         require(!stakers[msg.sender].isStaking, "922");
 
         // check if the sender has enough balance
-        require(_token.balanceOf(msg.sender) > STAKINGREQUIREMENT, "923");
+        require(_token.balanceOf(msg.sender) >= STAKINGREQUIREMENT, "923");
         // record the transfer
         stakers[msg.sender] = Staker({
             isStaking: true,
