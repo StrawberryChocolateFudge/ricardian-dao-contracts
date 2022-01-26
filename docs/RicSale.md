@@ -43,11 +43,11 @@ Returns the amount of tokens remaining for sale.
     	returns (uint256);
 
 Returns the current rate at which the tokens are sold.
-The sale starts at rate 100 and after every 20.000.000 tokens sold, it's incrementing until 40.000.000 are sold.
+The sale starts at rate 10 and it's incrementing until 40.000.000 are sold.
 
 The final rate for the last tokens is 1.
 
-This will be deployed on Harmony so the sale price starts at 0.01 ONE (around 0.003 USD) and increments till 1 ONE ( around 0.3 USD)
+This will be deployed on Harmony so the sale price starts at 0.1 ONE (around 0.03 USD) and increments till 1 ONE ( around 0.3 USD)
 
     function purchasedAlready(address _address) public view returns (bool);
 

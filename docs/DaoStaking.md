@@ -64,7 +64,7 @@ In order to have rewards to claim, the deployer will deposit rewards using this 
 
 Contributors can claim a reward for an accepted proposal.
 50% is added to the stake and 50% is payed out instantly.
-Rewards are from 300 - 1000 Ric.
+Rewards are from 300 - 10000 Ric.
 
 ### View functions
 

@@ -29,6 +29,13 @@ A user can choose to stop getting profit sharing rewards.
 
 Returns all the profit sharing addresses. This is called by the client to select who get's the cross chain reward.
 
+    function getPS(address _address)
+            external
+            view
+            returns (ProfitShare memory)
+
+Returns the ProfitShare obect of an address
+
 ### Events
 
     event SetPS(address indexed _address, string _to);

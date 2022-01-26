@@ -88,4 +88,14 @@
 
 954: Only daoStaking can call this
 
-951: Tokensale is over
+955: Tokensale is over
+
+956: Invalid trail id
+
+957: The trail doesn't exist
+
+958: Only the creator can modify trails
+
+959: Invalid data
+
+960: Invalid access property
