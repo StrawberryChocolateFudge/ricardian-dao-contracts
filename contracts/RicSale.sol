@@ -111,7 +111,7 @@ contract RicSale is Context, ReentrancyGuard {
      * another `nonReentrant` function.
      */
     function buyTokens() public payable nonReentrant {
-        require(tokensSold <= 40000000e18, "951");
+        require(tokensSold <= 40000000e18, "955");
         uint256 weiAmount = msg.value;
         uint256 currentRate = getCurrentRate(tokensSold);
 
@@ -223,42 +223,23 @@ contract RicSale is Context, ReentrancyGuard {
         pure
         returns (uint256)
     {
-        if (_tokensSold_ < 2000000e18) {
-            // if less than 2 million sold
-            return 100;
-        } else if (_tokensSold_ >= 2000000e18 && _tokensSold_ < 4000000e18) {
-            return 90;
-        } else if (_tokensSold_ >= 4000000e18 && _tokensSold_ < 6000000e18) {
-            return 80;
-        } else if (_tokensSold_ >= 6000000e18 && _tokensSold_ < 8000000e18) {
-            return 70;
-        } else if (_tokensSold_ >= 8000000e18 && _tokensSold_ < 10000000e18) {
-            return 60;
-        } else if (_tokensSold_ >= 10000000e18 && _tokensSold_ < 12000000e18) {
-            return 50;
-        } else if (_tokensSold_ >= 12000000e18 && _tokensSold_ < 14000000e18) {
-            return 40;
-        } else if (_tokensSold_ >= 14000000e18 && _tokensSold_ < 16000000e18) {
-            return 30;
-        } else if (_tokensSold_ >= 16000000e18 && _tokensSold_ < 18000000e18) {
-            return 20;
-        } else if (_tokensSold_ >= 18000000e18 && _tokensSold_ < 20000000e18) {
+        if (_tokensSold_ < 4000000e18) {
             return 10;
-        } else if (_tokensSold_ >= 20000000e18 && _tokensSold_ < 22000000e18) {
+        } else if (_tokensSold_ >= 4000000e18 && _tokensSold_ < 8000000e18) {
             return 9;
-        } else if (_tokensSold_ >= 22000000e18 && _tokensSold_ < 24000000e18) {
+        } else if (_tokensSold_ >= 8000000e18 && _tokensSold_ < 12000000e18) {
             return 8;
-        } else if (_tokensSold_ >= 24000000e18 && _tokensSold_ < 26000000e18) {
+        } else if (_tokensSold_ >= 12000000e18 && _tokensSold_ < 16000000e18) {
             return 7;
-        } else if (_tokensSold_ >= 26000000e18 && _tokensSold_ < 28000000e18) {
+        } else if (_tokensSold_ >= 16000000e18 && _tokensSold_ < 20000000e18) {
             return 6;
-        } else if (_tokensSold_ >= 28000000e18 && _tokensSold_ < 30000000e18) {
+        } else if (_tokensSold_ >= 20000000e18 && _tokensSold_ < 24000000e18) {
             return 5;
-        } else if (_tokensSold_ >= 30000000e18 && _tokensSold_ < 32000000e18) {
+        } else if (_tokensSold_ >= 24000000e18 && _tokensSold_ < 28000000e18) {
             return 4;
-        } else if (_tokensSold_ >= 32000000e18 && _tokensSold_ < 34000000e18) {
+        } else if (_tokensSold_ >= 28000000e18 && _tokensSold_ < 32000000e18) {
             return 3;
-        } else if (_tokensSold_ >= 34000000e18 && _tokensSold_ < 36000000e18) {
+        } else if (_tokensSold_ >= 32000000e18 && _tokensSold_ < 36000000e18) {
             return 2;
         } else if (_tokensSold_ >= 36000000e18 && _tokensSold_ < 40000000e18) {
             return 1;
