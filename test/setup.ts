@@ -32,6 +32,9 @@ export async function setUp(withStake: boolean): Promise<any> {
   const SignUp = await ethers.getContractFactory("SimpleTerms");
   const signUp = await SignUp.deploy();
   const signup = await signUp.deployed();
+  const TrailsRegistry = await ethers.getContractFactory("TrailsRegistry");
+  const trailsRegistry = await TrailsRegistry.deploy();
+  const trails = await trailsRegistry.deployed();
 
   const RicToken = await ethers.getContractFactory("Ric");
 
@@ -137,6 +140,7 @@ export async function setUp(withStake: boolean): Promise<any> {
   }
 
   return {
+    trails,
     catalogDAO,
     owner,
     participant1,

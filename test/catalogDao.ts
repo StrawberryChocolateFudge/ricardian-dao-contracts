@@ -530,20 +530,20 @@ describe("CatalogDao", function () {
           parseEther("70")
         );
 
-        await ric.approve(daoStaking.address, parseEther("10000"));
-        await daoStaking.depositRewards(parseEther("10000"));
+        await ric.approve(daoStaking.address, parseEther("20000"));
+        await daoStaking.depositRewards(parseEther("20000"));
         await daoStaking.connect(participant1).claimReward(lastAcc);
-        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("650"));
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("5150"));
         await daoStaking.getStaker(participant1.address);
 
         expect(
           await (
             await daoStaking.getStaker(participant1.address)
           ).stakeAmount
-        ).to.equal(parseEther("530"));
+        ).to.equal(parseEther("5030"));
 
         expect(await ric.balanceOf(participant1.address)).to.equal(
-          parseEther("570")
+          parseEther("5070")
         );
 
         // NOW AN UPDATE PROPOSAL COMES

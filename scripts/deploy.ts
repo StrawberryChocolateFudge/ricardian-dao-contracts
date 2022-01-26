@@ -57,6 +57,10 @@ export async function deploymentScript(arg: DeploymentArg) {
   const signUp = await SignUp.deploy();
   const signup = await signUp.deployed();
 
+  const TrailsRegistry = await ethers.getContractFactory("TrailsRegistry");
+  const trailsRegistry = await TrailsRegistry.deploy();
+  const trails = await trailsRegistry.deployed();
+
   const RicToken = await ethers.getContractFactory("Ric");
 
   const ricToken = await RicToken.deploy(
@@ -117,6 +121,7 @@ export async function deploymentScript(arg: DeploymentArg) {
   await feedao.setRicVault(ricvault.address);
   await ricvault.setFeeDao(feedao.address);
   console.log("Signup deployed to:", signup.address);
+  console.log("Trails deployed to ", trails.address);
   console.log("CatalogDAO library deployed to:", catalogdaolib.address);
   console.log("Catalogdao deployed to:", catalogDAO.address);
   console.log("Ric deployed to:", ric.address);

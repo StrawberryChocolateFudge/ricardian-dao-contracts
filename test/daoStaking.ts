@@ -220,7 +220,7 @@ describe("daoStaking", async function () {
         expect(basicReward).equal(ethers.utils.parseEther("300"));
         expect(frontEndReward).to.equal(ethers.utils.parseEther("600"));
         expect(hasFeesReward).to.equal(ethers.utils.parseEther("600"));
-        expect(maxReward).to.equal(ethers.utils.parseEther("1000"));
+        expect(maxReward).to.equal(ethers.utils.parseEther("10000"));
 
         expect(await daoStaking.getAvailableReward()).to.equal(
           ethers.utils.parseEther("0")
@@ -319,7 +319,7 @@ describe("daoStaking", async function () {
         expect(balanceAfterRewardPar1).equal(ethers.utils.parseEther("220"));
         expect(balanceAfterRewardPar2).equal(ethers.utils.parseEther("370"));
         expect(balanceAfterRewardPar3).equal(ethers.utils.parseEther("370"));
-        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("570"));
+        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("5070"));
 
         expect(
           await (
@@ -340,7 +340,7 @@ describe("daoStaking", async function () {
           await (
             await daoStaking.getStaker(participant4.address)
           ).stakeAmount
-        ).to.equal(parseEther("530"));
+        ).to.equal(parseEther("5030"));
       });
     });
   });
