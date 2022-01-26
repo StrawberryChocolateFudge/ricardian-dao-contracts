@@ -69,4 +69,12 @@ contract ArweavePS is Ownable {
     function getAllPS() external view returns (ProfitShare[] memory) {
         return allPS;
     }
+
+    function getPS(address _address)
+        external
+        view
+        returns (ProfitShare memory)
+    {
+        return sharingTo[_address];
+    }
 }
