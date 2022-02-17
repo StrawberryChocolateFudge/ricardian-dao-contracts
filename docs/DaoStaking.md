@@ -126,6 +126,13 @@ The available reward is the amount that can be claimed by contributors to the ca
 
 Returns the inner details of the contract, the STAKINGREQUIREMENT , the stakingBlocks, used for the stake time before unstaking and the MAXREWARD
 
+    	function isRewarded(string calldata arweaveTxId)
+    		external
+    		view
+    		returns (bool)
+
+Check if a proposal has been rewarded with this function!
+
 ### Events
 
     event Stake(address indexed _address, uint256 totalStaked);

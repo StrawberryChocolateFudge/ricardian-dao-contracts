@@ -82,12 +82,6 @@ You can vote on the removal proposal using the proposal index and your vote.ZP
 
 Removal proposals are closed by their creators.
 
-    function expressOpinion(uint256 _index_, bool likedIt)
-    	external
-    	returns (AcceptedSmartContractProposal memory);
-
-A wallet can express his opinion about an accepted smart contract
-
     function ban(address _address) external;
 
 Only the deployer can call this function. Used for banning malicious actors manually.
@@ -175,13 +169,11 @@ Returns the last index of the accepted smart contracts. These contracts are show
 You can fetch the accepted smart contract proposals by index.
 
     struct AcceptedSmartContractProposal {
+        uint256 index;
         string arweaveTxId;
         address creator;
         bool removed;
         uint256 created;
-        string arweaveTxId;
-        address creator;
-        bool removed;
         bool hasFrontend;
         bool hasFees;
         uint256 likes;

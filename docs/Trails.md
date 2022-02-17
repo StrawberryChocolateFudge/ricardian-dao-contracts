@@ -15,10 +15,6 @@ Create a new trail, the trailId must be unique, if the access is private, it's 0
 
 Add content to the trail, the ${data} is an arweave transaction id;
 
-    function remove(string memory _trailId_, uint256 _contentIndex_) external;
-
-Remove the data from a trail at the index;
-
     function blackList(string memory _trailId_, string memory data) external;
 
 You can blacklist transaction ids if the trail is PUBLIC, so they don't show on the front end. Blacklist is a string[], accessed with the _trailId_
@@ -42,38 +38,17 @@ Returns the details of the trail, but not the content.
     	struct TrailDetails {
 
     	    	address creator;
-    	    	uint256 contentIndex;
     	    	bool initialized;
            	uint8 access;
     }
 
-The TrailDetails object defines the creator, the contentIndex is the index of the latest content added, initialized is true if the trailDetails exists.
+The TrailDetails object defines the creator, initialized is true if the trailDetails exists.
 Access is 0 if the access is private , if it's 1, then it's public.
 Private means, the arweave comments are not fetched on the front end for the trail.
 
-    	function getTrailContent(string memory _trailId_, uint256 _contentIndex_)
+    	function getTrailContent(string memory _trailId_)
     	external
     	view
-    	returns (string memory);
+    	returns (string[] memory);
 
-You can get the content at an index via this function.
-
-    function getTrailPaginated(
-    	string memory _trailId_,
-    	uint256 _first_,
-    	uint256 _second_,
-    	uint256 _third_,
-    	uint256 _fourth_,
-    	uint256 _fifth_
-    )
-    	external
-    	view
-    	returns (
-    	string memory,
-    	string memory,
-    	string memory,
-    	string memory,
-    	string memory
-    	)
-
-Get 5 ArweaveTxIds from the contents, not only one. Used with pagination.
+You can get the content of a trail.

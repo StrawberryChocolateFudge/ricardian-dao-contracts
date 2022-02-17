@@ -99,3 +99,5 @@
 959: Invalid data
 
 960: Invalid access property
+
+961: You can only update your own contracts
