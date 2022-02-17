@@ -246,4 +246,12 @@ contract DaoStaking is Ownable {
     function getStakingBlocks() external view returns (uint256) {
         return stakingBlocks;
     }
+
+    function isRewarded(string calldata arweaveTxId)
+        external
+        view
+        returns (bool)
+    {
+        return rewardedProposals[arweaveTxId];
+    }
 }
