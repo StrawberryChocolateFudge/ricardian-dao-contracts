@@ -30,17 +30,19 @@ You can find the Api in the /docs folder.
 
 #### DaoStaking
 
+### IMPORTANT THE CONTRIBUTOR REWARDS ARE STILL BEING TWEAKED!
+
 - **Staking is for sybil resistance**.
 - **30 Ric must be staked** before contributing to the CatalogDao.
 - Malicious users can loose their stake.
 - Proposals and Voting with the catalogDao increase the stake lock up time.
   So it's not possible to submit a malicious proposal and unstake fast, to avoid penalty.
-- Pays **300 -1000 Ric rewards** to successful contributors!
+- Pays **300 -10000z Ric rewards** to successful contributors!
 - 50% of the reward is payed out and 50% goes on the stake.
 - **300 Ric** for **smart contract code**.
 - **600 Ric** for a **smart contract code with a front end**.
 - **600 Ric** for a **smart contract code with fees sent to the FeeDao**
-- **1000 Ric** for a **smart contract code with both front end and fees sent to the FeeDao**.
+- **10000 Ric** for a **smart contract code with both front end and fees sent to the FeeDao**.
 - Contributors can retire and **unstake to claim the accumulated stake rewards**.Their rank will go to 0 and they need to apply again for rank to restart proposing contracts.
 
 #### ArweavePS
