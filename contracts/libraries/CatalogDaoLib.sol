@@ -60,14 +60,13 @@ struct SmartContractProposal {
 }
 
 struct AcceptedSmartContractProposal {
+    uint256 index;
     uint256 created;
     string arweaveTxId;
     address creator;
     bool removed;
     bool hasFrontend;
     bool hasFees;
-    uint256 likes;
-    uint256 dislikes;
     bool isUpdate;
     uint256 updateOf;
 }
@@ -224,6 +223,10 @@ library CatalogDaoLib {
         require(self.rank[msg.sender] > 0, "911");
 
         if (_isUpdate) {
+            require(
+                self.acceptedSCProposals[_updateOf].creator == msg.sender,
+                "961"
+            );
             require(self.acceptedSCProposals[_updateOf].removed, "952");
         }
 
@@ -385,6 +388,7 @@ library CatalogDaoLib {
                 self.acceptedSCProposals[
                     self.acceptedSCProposalIndex
                 ] = AcceptedSmartContractProposal({
+                    index: self.acceptedSCProposalIndex,
                     created: block.number,
                     arweaveTxId: self
                         .smartContractProposals[sCIndex]
@@ -395,8 +399,6 @@ library CatalogDaoLib {
                         .smartContractProposals[sCIndex]
                         .hasFrontend,
                     hasFees: self.smartContractProposals[sCIndex].hasFees,
-                    likes: 0,
-                    dislikes: 0,
                     isUpdate: self.smartContractProposals[sCIndex].isUpdate,
                     updateOf: self.smartContractProposals[sCIndex].updateOf
                 });
@@ -606,19 +608,4 @@ library CatalogDaoLib {
     }
 
     //<-- Removal proposal functions end -->
-
-    function expressOpinion(
-        CatalogState storage self,
-        uint256 _index_,
-        bool likedIt
-    ) external returns (AcceptedSmartContractProposal memory) {
-        require(self.likedAlready[msg.sender][_index_] == false, "938");
-        if (likedIt) {
-            self.acceptedSCProposals[_index_].likes += 1;
-        } else {
-            self.acceptedSCProposals[_index_].dislikes += 1;
-        }
-        self.likedAlready[msg.sender][_index_] = true;
-        return self.acceptedSCProposals[_index_];
-    }
 }

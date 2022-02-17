@@ -351,13 +351,6 @@ contract CatalogDao is SimpleTerms {
 
     //<-- removal proposals end -->
 
-    function expressOpinion(uint256 _index_, bool likedIt)
-        external
-        returns (AcceptedSmartContractProposal memory)
-    {
-        return state.expressOpinion(_index_, likedIt);
-    }
-
     function getAllAccepted()
         external
         view
