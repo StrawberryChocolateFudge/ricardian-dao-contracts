@@ -21,11 +21,11 @@ describe("Trail tests", () => {
     const trailDetail = await trails.getTrailDetails(myTrailName);
 
     expect(await trailDetail.creator).to.equal(owner.address);
-    expect(await trailDetail.contentIndex).to.equal(1);
     expect(await trailDetail.initialized).to.equal(true);
     expect(await trailDetail.access).to.equal(0);
+    const content = await trails.getTrailContent(myTrailName);
 
-    expect(await trails.getTrailContent(myTrailName, 1)).to.equal(TXID);
+    expect(await content[0]).to.equal(TXID);
 
     const dontExist = await trails.getTrailDetails("DOESNTEXIST");
     expect(await dontExist.initialized).to.equal(false);
@@ -53,8 +53,5 @@ describe("Trail tests", () => {
         ),
       "959"
     );
-
-    expect(await trails.remove(myTrailName, 1)).to.emit(trails, "Remove");
-    expect(await trails.getTrailContent(myTrailName, 1)).to.equal("");
   });
 });

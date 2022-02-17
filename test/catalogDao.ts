@@ -412,47 +412,6 @@ describe("CatalogDao", function () {
     });
   });
 
-  it("A smart contract gets voted in, then users express their opinions", async function () {
-    const {
-      catalogDAO,
-      owner,
-      participant1,
-      participant2,
-      participant3,
-      participant4,
-    } = await setUp(true);
-
-    await catalogDAO.connect(participant1).proposeNewRank("repoURL");
-    await catalogDAO.connect(owner).voteOnNewRank(1, true);
-
-    await mineBlocks(100).then(async () => {
-      await catalogDAO.connect(participant1).closeRankProposal(1);
-      await catalogDAO
-        .connect(participant1)
-        .proposeNewSmartContract("sc1", false, false, false, 0);
-
-      await catalogDAO.connect(owner).voteOnNewSmartContract(1, true, false);
-
-      await mineBlocks(100).then(async () => {
-        await catalogDAO.connect(participant1).closeSmartContractProposal(1);
-
-        await catalogDAO.connect(participant2).expressOpinion(1, true);
-
-        await expectRevert(
-          () => catalogDAO.connect(participant2).expressOpinion(1, true),
-          "938"
-        );
-        await catalogDAO.connect(participant1).expressOpinion(1, true);
-        await catalogDAO.connect(participant3).expressOpinion(1, false);
-        await catalogDAO.connect(participant4).expressOpinion(1, true);
-        const acceptedProposals =
-          await catalogDAO.getAcceptedSCProposalsByIndex(1);
-        expect(acceptedProposals.likes).to.equal(3);
-        expect(acceptedProposals.dislikes).to.equal(1);
-      });
-    });
-  });
-
   it("a suspicious smart contract, testing penalize also", async () => {
     const { catalogDAO, owner, participant1, daoStaking } = await setUp(true);
 
@@ -547,6 +506,16 @@ describe("CatalogDao", function () {
         );
 
         // NOW AN UPDATE PROPOSAL COMES
+        // Can only update your own contract
+        await expectRevert(
+          () =>
+            catalogDAO
+              .connect(participant1)
+              .proposeNewSmartContract("sc1 update", true, true, true, 100),
+          "961"
+        );
+
+        // NOW AN UPDATE PROPOSAL COMES
         // Faild, need to update a removed contract
         await expectRevert(
           () =>
@@ -589,7 +558,7 @@ describe("CatalogDao", function () {
       });
     });
   });
-  it("testing => banning, should not use this much", async () => {
+  it("testing banning, should not use this much", async () => {
     const { catalogDAO, owner, participant1, daoStaking, ric } = await setUp(
       true
     );
