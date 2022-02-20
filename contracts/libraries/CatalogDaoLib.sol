@@ -31,7 +31,6 @@ struct MyProposals {
     uint256[] rank;
     uint256[] smartContract;
     uint256[] acceptedSCProposals;
-    uint256[] removedFromMe;
     uint256[] removal;
 }
 
@@ -272,6 +271,10 @@ library CatalogDaoLib {
                     _proposal.arweaveTxId,
                     _proposal.creator,
                     _proposal.createdBlock,
+                    _proposal.hasFrontend,
+                    _proposal.hasFees,
+                    _proposal.isUpdate,
+                    _proposal.updateOf,
                     _voter
                 )
             );
@@ -411,11 +414,8 @@ library CatalogDaoLib {
                 );
 
                 // If the proposal was accepted, I increase the Rank of the creator
-                // If the rank of the sender was
-                if (
-                    self.rank[msg.sender] == 1 &&
-                    self.myProposals[msg.sender].removedFromMe.length == 0
-                ) {
+                // If the rank of the sender was 1 and has 5 accepted proposals, he goes to rank 2
+                if (self.rank[msg.sender] == 1) {
                     if (
                         self
                             .myProposals[msg.sender]
@@ -424,12 +424,8 @@ library CatalogDaoLib {
                     ) self.rank[msg.sender] = 2;
                 }
 
-                // If the rank of the sender is 2, I need 3 accepted proposals to increase it to 3
-                // however if a smart contract was removed from the address, the rank can be max 2 .
-                if (
-                    self.rank[msg.sender] == 2 &&
-                    self.myProposals[msg.sender].removedFromMe.length == 0
-                ) {
+                // If the rank of the sender is 2, He needs 20 accepted proposals to increase it to 3
+                if (self.rank[msg.sender] == 2) {
                     if (
                         self
                             .myProposals[msg.sender]
@@ -506,6 +502,7 @@ library CatalogDaoLib {
                     _proposal.creator,
                     _proposal.malicious,
                     _proposal.acceptedIndex,
+                    _proposal.createdBlock,
                     _voter
                 )
             );
@@ -583,7 +580,7 @@ library CatalogDaoLib {
         require(!self.removalProposals[removalIndex].closed, "917");
 
         self.removalProposals[removalIndex].closed = true;
-        self.hasPendingSmartContractProposal[msg.sender] = false;
+        self.hasPendingRemovalProposal[msg.sender] = false;
         if (prop.approvals >= 10) {
             if (prop.approvals > prop.rejections) {
                 // If the proposal was accepted, I remove the approved proposal
