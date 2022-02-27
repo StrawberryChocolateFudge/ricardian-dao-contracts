@@ -23,8 +23,6 @@ struct TokenProposal {
 struct Token {
     string name; // The name of the token
     IERC20 token;
-    uint256 likes; // Amount of addresses liking this
-    uint256 dislikes; // Amount of addresses disliking this
 }
 
 uint256 constant requiredBalance = 1000e18;
@@ -58,8 +56,6 @@ contract FeeDao {
     // addressAdded is used like a .contains array method for the tokens .
     // will return true if the address has been added
     mapping(address => bool) private addressAdded;
-
-    mapping(bytes32 => bool) private likers; // collection of addresses who already liked or disliked a Token
 
     mapping(bytes32 => uint256) private balance;
 
@@ -241,27 +237,13 @@ contract FeeDao {
             tokens.push(
                 Token({
                     name: proposals[index].name,
-                    token: proposals[index].proposal,
-                    likes: 0,
-                    dislikes: 0
+                    token: proposals[index].proposal
                 })
             );
             addressAdded[address(proposals[index].proposal)] = true;
         }
         // else its closed, done.
         emit CloseProposal(msg.sender, index);
-    }
-
-    function expressOpinion(uint256 _tokenArrIndex_, bool likedIt) external {
-        // LIKE OR DISLIKE THE TOKEN
-        bytes32 _hash_ = tokenHashWithAddress(tokens[_tokenArrIndex_]);
-        require(likers[_hash_] == false, "938");
-        likers[_hash_] = true;
-        if (likedIt) {
-            tokens[_tokenArrIndex_].likes += 1;
-        } else {
-            tokens[_tokenArrIndex_].dislikes += 1;
-        }
     }
 
     function tokenHashWithAddress(Token memory _tokens_)
@@ -281,6 +263,10 @@ contract FeeDao {
 
     function getProposals() external view returns (TokenProposal[] memory) {
         return proposals;
+    }
+
+    function getMyProposals() external view returns (TokenProposal[] memory) {
+        return myProposals[msg.sender];
     }
 
     function calculateWithdraw(IERC20 from, uint256 amount)
@@ -357,49 +343,6 @@ contract FeeDao {
 
         lock = false;
         emit WithdrawToken(msg.sender, from, amount, _reward);
-    }
-
-    function withdrawThree(
-        IERC20 first,
-        IERC20 second,
-        IERC20 third,
-        uint256 amount
-    ) external {
-        require(addressAdded[address(first)], "939");
-        require(addressAdded[address(second)], "939");
-        require(addressAdded[address(third)], "939");
-
-        require(!lock, "935");
-        lock = true;
-        require(proposals.length >= 3, "936");
-        require(ric.balanceOf(msg.sender) >= amount, "934");
-        uint256 firstReward = calculateWithdraw(first, amount);
-        require(firstReward < first.balanceOf(address(this)), "927");
-        uint256 secondReward = calculateWithdraw(second, amount);
-        require(secondReward < second.balanceOf(address(this)), "927");
-        uint256 thirdReward = calculateWithdraw(third, amount);
-        require(thirdReward < third.balanceOf(address(this)), "927");
-        balance[hashBalance(address(first))] += firstReward;
-        balance[hashBalance(address(second))] += secondReward;
-        balance[hashBalance(address(third))] += thirdReward;
-
-        ricVault.lockFor(msg.sender, periods[Periods.trippleLock], amount);
-
-        // and transfer him the requested tokens
-        first.safeTransfer(msg.sender, firstReward);
-        second.safeTransfer(msg.sender, secondReward);
-        third.safeTransfer(msg.sender, thirdReward);
-        emit WithdrawThreeTokens(
-            msg.sender,
-            first,
-            second,
-            third,
-            amount,
-            firstReward,
-            secondReward,
-            thirdReward
-        );
-        lock = false;
     }
 
     function viewSpentBalanceOf(IERC20 _token_)

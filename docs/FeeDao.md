@@ -77,16 +77,6 @@ The ERC20 passed in must be from a list, accepted via voting.
 The amount is the Ric transfered.
 Addresses must grant Ric allowance to the RicVault to call this function.
 
-    function withdrawThree(
-    	IERC20 first,
-    	IERC20 second,
-    	IERC20 third,
-    	uint256 amount
-    ) external;
-
-A user can withdraw from 3 tokens at a time, this will result in a tripple lock up time for the Ric in the vault.
-The ERC20 addresses must be voted in before they can be used.
-
 ## View functions
 
     function getProposals() external view returns (TokenProposal[] memory);
