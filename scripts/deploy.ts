@@ -21,7 +21,7 @@ async function main() {
   const RICTOLOCK = "2000000"; // 2.000.000 Lock this amount for RICLOCKINTERVAL
   const RICLOCKINTERVAL = 7000000; // 7.000.000
 
-  const FEEDAOPOLLPERIOD = 10;
+  const FEEDAOPOLLPERIOD = 10; // The front end is coded to use the same values for the periods!
   const CATALOGPOLLPERIOD = 10;
 
   const DAOSTAKINGPERIOD = 100; // FOR TEsts the staking period is only 10 blocks for now
