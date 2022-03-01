@@ -37,7 +37,7 @@ You can find the Api in the /docs folder.
 - Malicious users can loose their stake.
 - Proposals and Voting with the catalogDao increase the stake lock up time.
   So it's not possible to submit a malicious proposal and unstake fast, to avoid penalty.
-- Pays **300 -10000z Ric rewards** to successful contributors!
+- Pays **300 -10000 Ric rewards** to successful contributors!
 - 50% of the reward is payed out and 50% goes on the stake.
 - **300 Ric** for **smart contract code**.
 - **600 Ric** for a **smart contract code with a front end**.
