@@ -31,38 +31,38 @@ describe("RicSale", async function () {
     } = await setUp(true);
     // I transfer away the tokens, the address will have only 40.000.000 tokens in the wallet for the sale
     await ric.approve(daoStaking.address, parseEther("100000000"));
-    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("99999570"));
+    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("99957000"));
     await daoStaking.depositRewards(parseEther("59999570"));
-    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("40000000"));
+    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("39957430"));
 
-    await ric.approve(ricsale.address, parseEther("40000000"));
-    expect(await ricsale.remainingTokens()).to.equal(parseEther("40000000"));
+    await ric.approve(ricsale.address, parseEther("39957430"));
+    expect(await ricsale.remainingTokens()).to.equal(parseEther("39957430"));
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      parseEther("70")
+      parseEther("7000")
     );
     let tokensSold = await ricsale.getTokensSold();
     expect(tokensSold).to.equal(0);
     expect(await ricsale.getCurrentRate(tokensSold)).to.equal(10);
 
-    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("40000000"));
+    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("39957430"));
 
     let overrides = { value: parseEther("1000") };
     await ricsale.connect(participant1).buyTokens(overrides);
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      parseEther("10070")
+      parseEther("17000")
     );
-    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("39990000"));
+    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("39947430"));
     expect(await ric.balanceOf(participant2.address)).to.equal(
-      parseEther("70")
+      parseEther("7000")
     );
 
     overrides = { value: parseEther("1000") };
     await ricsale.connect(participant2).buyTokens(overrides);
 
     expect(await ric.balanceOf(participant2.address)).to.equal(
-      parseEther("10070")
+      parseEther("17000")
     );
     overrides = { value: parseEther("1") };
     await expectRevert(
@@ -98,7 +98,7 @@ describe("RicSale", async function () {
 
     tokensSold = await ricsale.getTokensSold();
     expect(tokensSold).to.equal(parseEther("130000"));
-    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("39870000"));
+    expect(await ric.balanceOf(owner.address)).to.equal(parseEther("39827430"));
     expect(await ricsale.getCurrentRate(parseEther("1000000"))).to.equal(10);
     expect(await ricsale.getCurrentRate(parseEther("4000000"))).to.equal(9);
     expect(await ricsale.getCurrentRate(parseEther("8000000"))).to.equal(8);
@@ -136,10 +136,10 @@ describe("RicSale", async function () {
     expect(tokensSold).to.equal(parseEther("200000"));
 
     expect(await ricsale.getCurrentRate(tokensSold)).to.equal(10);
-    expect(await ricsale.remainingTokens()).to.equal(parseEther("39800000"));
+    expect(await ricsale.remainingTokens()).to.equal(parseEther("39757430"));
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      parseEther("10070")
+      parseEther("17000")
     );
 
     await expectRevert(

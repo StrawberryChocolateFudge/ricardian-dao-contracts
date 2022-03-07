@@ -27,7 +27,7 @@ describe("feeDao", () => {
     expect(JSON.stringify(proposals)).to.equal("[[]]");
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      parseEther("70")
+      parseEther("7000")
     );
     // the participant 1 has not enough balance to propose a token
     await expectRevert(
@@ -47,12 +47,12 @@ describe("feeDao", () => {
     const addr = proposals[0][0].proposal;
     expect(addr).to.equal(feetoken1.address);
 
-    // the owner voted already because he created the proposal.
+    // // the owner voted already because he created the proposal.
 
     expect(await feedao.votedAlready(0, owner.address)).to.equal(true);
     expect(await feedao.votedAlready(0, participant1.address)).to.equal(false);
     // I drop tokens to participant1 so he can vote
-    await ric.transfer(participant1.address, parseEther("1000"));
+    await ric.transfer(participant1.address, parseEther("10000"));
 
     await feedao
       .connect(participant1)
@@ -82,8 +82,8 @@ describe("feeDao", () => {
         "932"
       );
 
-      await ric.transfer(participant1.address, parseEther("1000"));
-      await ric.transfer(participant2.address, parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("10000"));
+      await ric.transfer(participant2.address, parseEther("10000"));
 
       expect(await feedao.connect(participant1).voteOnToken(0, true)).to.emit(
         feedao,
@@ -147,8 +147,8 @@ describe("feeDao", () => {
         "932"
       );
 
-      await ric.transfer(participant1.address, parseEther("1000"));
-      await ric.transfer(participant2.address, parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("10000"));
+      await ric.transfer(participant2.address, parseEther("10000"));
 
       expect(await feedao.connect(participant1).voteOnToken(0, false)).to.emit(
         feedao,
@@ -194,10 +194,10 @@ describe("feeDao", () => {
       await catalogDAO.connect(participant3).closeRankProposal(3);
       await catalogDAO.connect(participant4).closeRankProposal(4);
 
-      await ric.transfer(participant1.address, parseEther("1000"));
-      await ric.transfer(participant2.address, parseEther("1000"));
-      await ric.transfer(participant3.address, parseEther("1000"));
-      await ric.transfer(participant4.address, parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("10000"));
+      await ric.transfer(participant2.address, parseEther("10000"));
+      await ric.transfer(participant3.address, parseEther("10000"));
+      await ric.transfer(participant4.address, parseEther("10000"));
 
       await feedao.proposeNewToken(ric.address, "pickle rick!", "TOken name");
       // VOTED IN
@@ -346,8 +346,8 @@ describe("feeDao", () => {
         "TOken name"
       );
 
-      await ric.transfer(participant1.address, parseEther("1000"));
-      await ric.transfer(participant2.address, parseEther("1000"));
+      await ric.transfer(participant1.address, parseEther("10000"));
+      await ric.transfer(participant2.address, parseEther("10000"));
 
       expect(await feedao.connect(participant1).voteOnToken(0, true)).to.emit(
         feedao,
@@ -383,7 +383,7 @@ describe("feeDao", () => {
             tokens[0].token,
             await ric.balanceOf(participant1.address)
           )
-        ).to.equal(parseEther("0.107"));
+        ).to.equal(parseEther("1.7"));
 
         // // Ricvault lockFor should throw because of allowance
         await expectRevert(
@@ -406,18 +406,18 @@ describe("feeDao", () => {
         ).to.emit(feedao, "WithdrawToken");
         // Participant1 got the feetoken
         expect(await feetoken1.balanceOf(participant1.address)).to.equal(
-          parseEther("0.107")
+          parseEther("1.7")
         );
 
         expect(await feedao.viewSpentBalanceOf(tokens[0].token)).to.equal(
-          parseEther("0.107")
+          parseEther("1.7")
         );
         // Ric balance is zero because the transfer
         expect(await ric.balanceOf(participant1.address)).to.equal(
           parseEther("0")
         );
         // The total locked in the vault is 1070 now, the previous balance of the participant
-        expect(await ricvault.getTotalLocked()).to.equal(parseEther("1070"));
+        expect(await ricvault.getTotalLocked()).to.equal(parseEther("17000"));
         const lockIndex = await ricvault.getLockIndex(participant1.address);
         expect(lockIndex).to.equal(1);
 
@@ -426,7 +426,7 @@ describe("feeDao", () => {
           lockIndex
         );
         // Just making sure the vault has the balance
-        expect(vaultContent.lockedAmount).to.equal(parseEther("1070"));
+        expect(vaultContent.lockedAmount).to.equal(parseEther("17000"));
       });
     });
   });

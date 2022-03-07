@@ -430,7 +430,7 @@ describe("CatalogDao", function () {
 
       await mineBlocks(100).then(async () => {
         expect(await daoStaking.getAvailableReward()).to.equal(0);
-        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("15000"));
 
         expect(await catalogDAO.closeSuspiciousProposal(1)).to.emit(
           daoStaking,
@@ -442,9 +442,9 @@ describe("CatalogDao", function () {
         expect(scProposal.rejections).to.equal(10);
         expect(scProposal.suspicious).to.equal(10);
 
-        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("120"));
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("12000"));
         expect(await daoStaking.getAvailableReward()).to.equal(
-          parseEther("30")
+          parseEther("3000")
         );
 
         // Suspicious contract was closed by owner and the stake was taken??
@@ -483,26 +483,26 @@ describe("CatalogDao", function () {
         const lastAcc = await catalogDAO.getAcceptedSmartContractIndex();
         // Claims the reward for the proposal
 
-        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("15000"));
         expect(await daoStaking.getAvailableReward()).equal(parseEther("0"));
         expect(await ric.balanceOf(participant1.address)).to.equal(
-          parseEther("70")
+          parseEther("7000")
         );
 
         await ric.approve(daoStaking.address, parseEther("20000"));
         await daoStaking.depositRewards(parseEther("20000"));
         await daoStaking.connect(participant1).claimReward(lastAcc);
-        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("5150"));
+        expect(await daoStaking.getTotalStaked()).to.equal(parseEther("20000"));
         await daoStaking.getStaker(participant1.address);
 
         expect(
           await (
             await daoStaking.getStaker(participant1.address)
           ).stakeAmount
-        ).to.equal(parseEther("5030"));
+        ).to.equal(parseEther("8000"));
 
         expect(await ric.balanceOf(participant1.address)).to.equal(
-          parseEther("5070")
+          parseEther("12000")
         );
 
         // NOW AN UPDATE PROPOSAL COMES
@@ -563,7 +563,7 @@ describe("CatalogDao", function () {
       true
     );
 
-    expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+    expect(await daoStaking.getTotalStaked()).to.equal(parseEther("15000"));
 
     await expectRevert(
       () => catalogDAO.connect(participant1).ban(owner.address),
@@ -591,20 +591,20 @@ describe("CatalogDao", function () {
           await daoStaking.connect(participant1).claimReward(10);
 
           expect(await ric.balanceOf(participant1.address)).to.equal(
-            parseEther("1570")
+            parseEther("22000")
           );
 
           expect(
             await (
               await daoStaking.getStaker(participant1.address)
             ).stakeAmount
-          ).to.equal(parseEther("1530"));
+          ).to.equal(parseEther("18000"));
 
           expect(await daoStaking.getTotalStaked()).to.equal(
-            parseEther("1650")
+            parseEther("30000")
           );
           expect(await daoStaking.getAvailableReward()).to.equal(
-            parseEther("97000")
+            parseEther("70000")
           );
 
           expect(await catalogDAO.ban(participant1.address));
@@ -617,10 +617,12 @@ describe("CatalogDao", function () {
 
           expect(await catalogDAO.getRank(participant1.address)).to.equal(0);
 
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("120"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("12000")
+          );
 
           expect(await daoStaking.getAvailableReward()).to.equal(
-            parseEther("98530")
+            parseEther("88000")
           );
         }
       );
@@ -639,42 +641,56 @@ describe("CatalogDao", function () {
       await catalogDAO.connect(participant1).closeRankProposal(1);
       await grindForRank(catalogDAO, participant1, owner, 5, "asf").then(
         async () => {
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("150"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("15000")
+          );
           await daoStaking.connect(participant1).claimReward(1);
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("300"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("16500")
+          );
 
           await daoStaking.connect(participant1).claimReward(2);
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("450"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("18000")
+          );
 
           await daoStaking.connect(participant1).claimReward(3);
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("600"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("19500")
+          );
 
           await daoStaking.connect(participant1).claimReward(4);
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("750"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("21000")
+          );
 
           await daoStaking.connect(participant1).claimReward(5);
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("900"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("22500")
+          );
 
           // NOW THE PARTICIPANT RETIRES AFTER SOME TIME
           expect(await ric.balanceOf(participant1.address)).to.equal(
-            parseEther("820")
+            parseEther("14500")
           );
-          expect(await daoStaking.getTotalStaked()).to.equal(parseEther("900"));
+          expect(await daoStaking.getTotalStaked()).to.equal(
+            parseEther("22500")
+          );
 
           await mineBlocks(100).then(async () => {
             await daoStaking.connect(participant1).unStake();
             expect(await daoStaking.getTotalStaked()).to.equal(
-              parseEther("120")
+              parseEther("12000")
             );
             expect(await ric.balanceOf(participant1.address)).to.equal(
-              parseEther("1600")
+              parseEther("25000")
             );
 
             expect(await catalogDAO.getRank(participant1.address)).to.equal(1);
 
             await ric
               .connect(participant1)
-              .approve(daoStaking.address, parseEther("30"));
+              .approve(daoStaking.address, parseEther("3000"));
             await daoStaking.connect(participant1).stake();
           });
         }

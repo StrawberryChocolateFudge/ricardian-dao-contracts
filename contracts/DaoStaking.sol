@@ -22,9 +22,9 @@ contract DaoStaking is Ownable {
     using SafeERC20 for IERC20;
     IERC20 private _token; // The Ric token
 
-    uint256 private constant STAKINGREQUIREMENT = 30e18; // Required tokens to stake.
+    uint256 private constant STAKINGREQUIREMENT = 3000e18; // Required tokens to stake.
     uint256 private constant MAXREWARD = 10000e18; // Reward payed out to accepted proposal creators!
-    uint256 private constant FEATUREREWARD = 300e18;
+    uint256 private constant FEATUREREWARD = 3000e18;
 
     CatalogDao private catalogDao;
     ArweavePS private arweavePS;

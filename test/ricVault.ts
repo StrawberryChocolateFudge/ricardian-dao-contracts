@@ -29,7 +29,7 @@ describe("ric vault", function () {
 
     await expectRevert(() => ricvault.connect(participant1).release(1), "942");
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      ethers.utils.parseEther("60")
+      ethers.utils.parseEther("6990")
     );
     await mineBlocks(11).then(async () => {
       expect(await ricvault.connect(participant1).release(1)).to.emit(
@@ -38,7 +38,7 @@ describe("ric vault", function () {
       );
 
       expect(await ric.balanceOf(participant1.address)).to.equal(
-        ethers.utils.parseEther("70")
+        ethers.utils.parseEther("7000")
       );
     });
   });

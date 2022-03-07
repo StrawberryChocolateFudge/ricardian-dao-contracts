@@ -25,7 +25,7 @@ describe("daoStaking", async function () {
     expect(await daoStaking.isStaking(participant4.address)).to.equal(true);
 
     expect(await daoStaking.getTotalStaked()).to.equal(
-      ethers.utils.parseEther("150")
+      ethers.utils.parseEther("15000")
     );
 
     expect(await daoStaking.getAvailableReward()).to.equal(
@@ -44,10 +44,10 @@ describe("daoStaking", async function () {
       expect(PS[0][0].sharing).to.equal(true);
 
       expect(await ric.balanceOf(daoStaking.address)).to.equal(
-        ethers.utils.parseEther("150")
+        ethers.utils.parseEther("15000")
       );
       expect(await ric.balanceOf(participant1.address)).to.equal(
-        ethers.utils.parseEther("70")
+        ethers.utils.parseEther("7000")
       );
 
       expect(await daoStaking.connect(participant1).unStake()).to.emit(
@@ -56,11 +56,11 @@ describe("daoStaking", async function () {
       );
 
       expect(await ric.balanceOf(daoStaking.address)).to.equal(
-        ethers.utils.parseEther("120")
+        ethers.utils.parseEther("12000")
       );
 
       expect(await ric.balanceOf(participant1.address)).to.equal(
-        ethers.utils.parseEther("100")
+        ethers.utils.parseEther("10000")
       );
 
       PS = new Array(await arweaveps.getAllPS());
@@ -82,10 +82,10 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("0")
     );
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("99999570")
+      ethers.utils.parseEther("99957000")
     );
     expect(await ric.balanceOf(daoStaking.address)).to.equal(
-      ethers.utils.parseEther("150")
+      ethers.utils.parseEther("15000")
     );
 
     await ric
@@ -102,10 +102,10 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("100")
     );
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("99999470")
+      ethers.utils.parseEther("99956900")
     );
     expect(await ric.balanceOf(daoStaking.address)).to.equal(
-      ethers.utils.parseEther("250")
+      ethers.utils.parseEther("15100")
     );
 
     expect(
@@ -118,10 +118,10 @@ describe("daoStaking", async function () {
       ethers.utils.parseEther("200")
     );
     expect(await ric.balanceOf(owner.address)).to.equal(
-      ethers.utils.parseEther("99999370")
+      ethers.utils.parseEther("99956800")
     );
     expect(await ric.balanceOf(daoStaking.address)).to.equal(
-      ethers.utils.parseEther("350")
+      ethers.utils.parseEther("15200")
     );
 
     // I expect claimReward fails here
@@ -217,9 +217,9 @@ describe("daoStaking", async function () {
         const hasFeesReward = await daoStaking.getActualReward(false, true);
         const maxReward = await daoStaking.getActualReward(true, true);
 
-        expect(basicReward).equal(ethers.utils.parseEther("300"));
-        expect(frontEndReward).to.equal(ethers.utils.parseEther("600"));
-        expect(hasFeesReward).to.equal(ethers.utils.parseEther("600"));
+        expect(basicReward).equal(ethers.utils.parseEther("3000"));
+        expect(frontEndReward).to.equal(ethers.utils.parseEther("6000"));
+        expect(hasFeesReward).to.equal(ethers.utils.parseEther("6000"));
         expect(maxReward).to.equal(ethers.utils.parseEther("10000"));
 
         expect(await daoStaking.getAvailableReward()).to.equal(
@@ -254,7 +254,7 @@ describe("daoStaking", async function () {
 
         await ric.transfer(
           participant5.address,
-          ethers.utils.parseEther("100")
+          ethers.utils.parseEther("10000")
         );
         // A non-staker tries to withdraw
         await expectRevert(
@@ -272,14 +272,14 @@ describe("daoStaking", async function () {
         );
 
         const balanceOfPar1 = await ric.balanceOf(participant1.address);
-        expect(balanceOfPar1).to.equal(parseEther("70"));
+        expect(balanceOfPar1).to.equal(parseEther("7000"));
         const balanceOfPar2 = await ric.balanceOf(participant2.address);
-        expect(balanceOfPar2).to.equal(parseEther("70"));
+        expect(balanceOfPar2).to.equal(parseEther("7000"));
         const balanceOfPar3 = await ric.balanceOf(participant3.address);
-        expect(balanceOfPar3).to.equal(parseEther("70"));
+        expect(balanceOfPar3).to.equal(parseEther("7000"));
 
         const balanceOfPar4 = await ric.balanceOf(participant4.address);
-        expect(balanceOfPar4).to.equal(parseEther("70"));
+        expect(balanceOfPar4).to.equal(parseEther("7000"));
 
         // takes the reward
         expect(await daoStaking.connect(participant1).claimReward(1)).to.emit(
@@ -316,31 +316,31 @@ describe("daoStaking", async function () {
         const balanceAfterRewardPar4 = await ric.balanceOf(
           participant4.address
         );
-        expect(balanceAfterRewardPar1).equal(ethers.utils.parseEther("220"));
-        expect(balanceAfterRewardPar2).equal(ethers.utils.parseEther("370"));
-        expect(balanceAfterRewardPar3).equal(ethers.utils.parseEther("370"));
-        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("5070"));
+        expect(balanceAfterRewardPar1).equal(ethers.utils.parseEther("8500"));
+        expect(balanceAfterRewardPar2).equal(ethers.utils.parseEther("10000"));
+        expect(balanceAfterRewardPar3).equal(ethers.utils.parseEther("10000"));
+        expect(balanceAfterRewardPar4).equal(ethers.utils.parseEther("12000"));
 
         expect(
           await (
             await daoStaking.getStaker(participant1.address)
           ).stakeAmount
-        ).to.equal(parseEther("180"));
+        ).to.equal(parseEther("4500"));
         expect(
           await (
             await daoStaking.getStaker(participant2.address)
           ).stakeAmount
-        ).to.equal(parseEther("330"));
+        ).to.equal(parseEther("6000"));
         expect(
           await (
             await daoStaking.getStaker(participant3.address)
           ).stakeAmount
-        ).to.equal(parseEther("330"));
+        ).to.equal(parseEther("6000"));
         expect(
           await (
             await daoStaking.getStaker(participant4.address)
           ).stakeAmount
-        ).to.equal(parseEther("5030"));
+        ).to.equal(parseEther("8000"));
       });
     });
   });

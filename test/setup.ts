@@ -186,16 +186,16 @@ export async function dropTokens(
 ) {
   await ric
     .connect(owner)
-    .transfer(participant1.address, ethers.utils.parseEther("100"));
+    .transfer(participant1.address, ethers.utils.parseEther("10000"));
   await ric
     .connect(owner)
-    .transfer(participant2.address, ethers.utils.parseEther("100"));
+    .transfer(participant2.address, ethers.utils.parseEther("10000"));
   await ric
     .connect(owner)
-    .transfer(participant3.address, ethers.utils.parseEther("100"));
+    .transfer(participant3.address, ethers.utils.parseEther("10000"));
   await ric
     .connect(owner)
-    .transfer(participant4.address, ethers.utils.parseEther("100"));
+    .transfer(participant4.address, ethers.utils.parseEther("10000"));
 }
 
 export async function approveSpend(
@@ -209,19 +209,19 @@ export async function approveSpend(
 ) {
   await ric
     .connect(owner)
-    .approve(staking.address, ethers.utils.parseEther("30"));
+    .approve(staking.address, ethers.utils.parseEther("3000"));
   await ric
     .connect(participant1)
-    .approve(staking.address, ethers.utils.parseEther("30"));
+    .approve(staking.address, ethers.utils.parseEther("3000"));
   await ric
     .connect(participant2)
-    .approve(staking.address, ethers.utils.parseEther("30"));
+    .approve(staking.address, ethers.utils.parseEther("3000"));
   await ric
     .connect(participant3)
-    .approve(staking.address, ethers.utils.parseEther("30"));
+    .approve(staking.address, ethers.utils.parseEther("3000"));
   await ric
     .connect(participant4)
-    .approve(staking.address, ethers.utils.parseEther("30"));
+    .approve(staking.address, ethers.utils.parseEther("3000"));
 }
 
 export async function stakeAll(

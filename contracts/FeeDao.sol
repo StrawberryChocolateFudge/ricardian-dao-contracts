@@ -25,7 +25,7 @@ struct Token {
     IERC20 token;
 }
 
-uint256 constant requiredBalance = 1000e18;
+uint256 constant requiredBalance = 10000e18;
 uint256 constant precision = 1000000000; //The precision of reward calculation, 9 decimals
 
 enum Balance {

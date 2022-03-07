@@ -43,16 +43,16 @@ describe("Ric token", async function () {
     );
 
     expect(await ric.balanceOf(participant1.address)).to.equal(
-      ethers.utils.parseEther("100")
+      ethers.utils.parseEther("10000")
     );
     expect(await ric.balanceOf(participant2.address)).to.equal(
-      ethers.utils.parseEther("100")
+      ethers.utils.parseEther("10000")
     );
     expect(await ric.balanceOf(participant3.address)).to.equal(
-      ethers.utils.parseEther("100")
+      ethers.utils.parseEther("10000")
     );
     expect(await ric.balanceOf(participant4.address)).to.equal(
-      ethers.utils.parseEther("100")
+      ethers.utils.parseEther("10000")
     );
 
     expect(
@@ -60,7 +60,7 @@ describe("Ric token", async function () {
     ).to.emit(ric, "Burn");
 
     expect(await ric.balanceOf(participant1.address)).to.eq(
-      ethers.utils.parseEther("90")
+      ethers.utils.parseEther("9990")
     );
 
     expect(await ric.totalSupply()).to.equal(
@@ -115,6 +115,6 @@ describe("Ric token", async function () {
 
     expect(
       await ric.allowance(participant1.address, daoStaking.address)
-    ).to.equal(ethers.utils.parseEther("30"));
+    ).to.equal(ethers.utils.parseEther("3000"));
   });
 });
