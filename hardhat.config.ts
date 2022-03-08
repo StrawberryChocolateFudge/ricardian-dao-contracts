@@ -35,6 +35,11 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     localhost: { url: "http://127.0.0.1:8545" },
+    harmonytestnet: {
+      url: process.env.HARMONY_TESTNET,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   gasReporter: {
     enabled: true,
