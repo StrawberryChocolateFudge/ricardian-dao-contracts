@@ -21,10 +21,7 @@ contract TrailsRegistry {
         bytes32 trailId = hashString(_trailId_);
 
         require(trailId != EMPTYSTRING, "956");
-        require(
-            trails[trailId].initialized == false,
-            "That trail already exists!"
-        );
+        require(trails[trailId].initialized == false, "962");
         require(access == 0 || access == 1, "960");
 
         trails[trailId] = TrailDetails({
