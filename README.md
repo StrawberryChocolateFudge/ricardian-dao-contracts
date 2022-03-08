@@ -2,6 +2,19 @@
 
 The smart contracts in this library are the DAO contracts for Ricardian Fabric.
 
+## Testnet addresses
+
+Signup deployed to: 0xC513a5B27F802980B3b9be9e95A2dEe1F2FEd6d2
+Trails deployed to 0xf8214Ae56b2d1dc6b7F7E3F981A2624AdcC81746
+CatalogDAO library deployed to: 0x8B71E8277b231b20d10115383DD7CDd212198357
+Catalogdao deployed to: 0x13c112Ce9E7466D487F66602e0ae8D20826976f9
+Ric deployed to: 0x7d02F0be57dC3Cf9Bfa49F6e859415981166F49b
+Ric sale deployed to: 0x0607b120F87876aFa9Fa898DE10c7ad293e4476a
+ArweavePs deployed to: 0x705fB7fd5e95Fb04F1342b6879465B47030638C4
+DaoStaking deployed to: 0x51780909577786Ab1a3Ab70D9a2a7c2b4571d489
+FeeDao deployed to: 0x23928e76411cA69Bbb89E8c843F35917580Ee409
+Ric vault deployed to: 0x0Da072BD910F144917cf40f48A614c9Ae4aBB9cd
+
 ## Smart contracts
 
 You can find the Api in the /docs folder.
