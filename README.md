@@ -1,5 +1,8 @@
 # Ricardian Fabric DAO Contracts
 
+# THE MAINTAINED CODE HAD MOVED TO THE ORGANIZATION https://github.com/Ricardian-Fabric/ricardian-dao-contracts
+# THIS REPO IS DEPRECATED
+
 The smart contracts in this library are the DAO contracts for Ricardian Fabric.
 
 ## Testnet addresses
